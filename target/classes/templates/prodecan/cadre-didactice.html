@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Management Cadre Didactice - Prodecan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Același navbar ca în dashboard -->
+    
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-chalkboard-teacher me-2"></i>Management Cadre Didactice
+                </h5>
+                <a href="/cadruDidactic-create" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus me-1"></i>Adaugă Cadru Didactic
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nume</th>
+                                <th>Prenume</th>
+                                <th>Funcție</th>
+                                <th>Specializare</th>
+                                <th>Email</th>
+                                <th>Telefon</th>
+                                <th>Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="cadru : ${cadreDidactice}">
+                                <td th:text="${cadru.nume}">Nume</td>
+                                <td th:text="${cadru.prenume}">Prenume</td>
+                                <td th:text="${cadru.functie}">Funcție</td>
+                                <td th:text="${cadru.specializare}">Specializare</td>
+                                <td th:text="${cadru.email}">Email</td>
+                                <td th:text="${cadru.telefon}">Telefon</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a th:href="@{/cadruDidactic-edit/{id}(id=${cadru.id})}" 
+                                           class="btn btn-primary btn-sm me-1">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <a th:href="@{/cadruDidactic-delete/{id}(id=${cadru.id})}" 
+                                           class="btn btn-danger btn-sm"
+                                           onclick="return confirm('Ești sigur că vrei să ștergi acest cadru didactic?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
