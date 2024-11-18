@@ -1,0 +1,190 @@
+	@Bean
+	public CommandLineRunner loadDataCompanii(CompanieRepository repository)
+	{
+	    return (args) -> {	
+			log.info("starting initialization...");
+			
+			Companie c1=new Companie();
+	        c1.setNume("Continental");
+	        c1.setReprezentant("Christian von Albrichsfeld");
+	        c1.setCalitate("CEO");
+	        c1.setAdresa("str. Siemens nr. 1, Timisoara");
+	        c1.setTelefon("0700123456");
+	        repository.save(c1);
+
+			Companie c2=new Companie();
+	        c2.setNume("Nokia");
+	        c2.setReprezentant("Florin-Costin Ciocan");
+	        c2.setCalitate("PMP");
+	        c2.setAdresa("Splaiul Nicolae Titulescu nr. 8, Timisoara");
+	        c2.setTelefon("0700123456");
+	        repository.save(c2);
+
+			log.info("ending initialization...");
+	    };
+	}
+
+	/*
+	@Bean
+	public CommandLineRunner loadDataStudenti(StudentRepository repository)
+	{
+	    return (args) -> {	
+			log.info("starting initialization...");
+			
+			Student s1=new Student();
+	        s1.setNume("Bunea");
+	        s1.setPrenume("Sergiu");
+	        s1.setCnp("1900505010203");
+	        s1.setDataNasterii(Date.valueOf("1990-05-05"));
+	        s1.setLoculNasterii("Caransebes");
+	        s1.setCetatenie("romana");
+	        s1.setCiSerie("TZ");
+	        s1.setCiNumar("112233");
+	        s1.setAdresa("Calea Lipovei 10, Timisoara");
+	        s1.setAnUniversitar("2023-2024");
+	        s1.setFacultate("AC");
+	        s1.setSpecializare("cti-en");
+	        s1.setAnDeStudiu(3);
+	        s1.setEmail("sergiu.bunea@student.upt.ro");
+	        s1.setTelefon("0700112233");
+	        repository.save(s1);
+				
+			log.info("ending initialization...");
+	    };
+	}
+
+	@Bean
+	public CommandLineRunner loadDataCadreDidactice(CadruDidacticRepository repository)
+	{
+	    return (args) -> {	
+			log.info("starting initialization...");
+			
+			CadruDidactic cd1=new CadruDidactic();
+	        cd1.setNume("Todinca");
+	        cd1.setPrenume("Doru");
+	        cd1.setFunctie("conferentiar");
+	        cd1.setTelefon("0700123456");
+	        cd1.setEmail("doru.todinca@upt.ro");
+	        cd1.setSpecializare("cti-ro");
+	        repository.save(cd1);
+	        
+			CadruDidactic cd2=new CadruDidactic();
+	        cd2.setNume("Cernazanu");
+	        cd2.setPrenume("Cosmin");
+	        cd2.setFunctie("conferentiar");
+	        cd2.setTelefon("0700123456");
+	        cd2.setEmail("cosmin.cernazanu@upt.ro");
+	        cd2.setSpecializare("cti-en");
+	        repository.save(cd2);
+
+			CadruDidactic cd3=new CadruDidactic();
+	        cd3.setNume("Nanu");
+	        cd3.setPrenume("Sorin");
+	        cd3.setFunctie("sef de lucrari");
+	        cd3.setTelefon("0700123456");
+	        cd3.setEmail("sorin.nanu@upt.ro");
+	        cd3.setSpecializare("is");
+	        repository.save(cd3);
+
+			CadruDidactic cd4=new CadruDidactic();
+	        cd4.setNume("Szeidert");
+	        cd4.setPrenume("Iosif");
+	        cd4.setFunctie("conferentiar");
+	        cd4.setTelefon("0700123456");
+	        cd4.setEmail("iosif.szeidert@upt.ro");
+	        cd4.setSpecializare("info-zi");
+	        repository.save(cd4);
+
+			CadruDidactic cd5=new CadruDidactic();
+	        cd5.setNume("Crisan-Vida");
+	        cd5.setPrenume("Mihaela");
+	        cd5.setFunctie("sef de lucrari");
+	        cd5.setTelefon("0700123456");
+	        cd5.setEmail("mihaela.crisan-vida@upt.ro");
+	        cd5.setSpecializare("info-id");
+	        repository.save(cd5);
+
+			log.info("ending initialization...");
+	    };
+	}
+
+	@Bean
+	public CommandLineRunner loadDataTutori(TutoreRepository repository)
+	{
+	    return (args) -> {	
+			log.info("starting initialization...");
+			
+			Tutore t1=new Tutore();
+	        t1.setNume("Ciocan");
+	        t1.setPrenume("Florin Costin");
+	        t1.setFunctie("PMP");
+	        t1.setTelefon("0700123456");
+	        t1.setEmail("florin.ciocan@nokia.com");
+	        repository.save(t1);
+				
+			log.info("ending initialization...");
+	    };
+	}
+
+	@Autowired
+	CompanieRepository comRep;
+	@Autowired
+	StudentRepository studRep;
+	@Autowired
+	TutoreRepository tutRep;
+	@Autowired
+	CadruDidacticRepository cdRep;
+
+	@Bean
+	public CommandLineRunner loadDataConventii(ConventieRepository repository)
+	{
+		
+	    return (args) -> {	
+			log.info("starting tcs initialization...");
+			
+			Companie com1=comRep.findById(0);
+			Student s1=studRep.findById(0);
+			Tutore t1=tutRep.findById(0);
+			CadruDidactic cd1=cdRep.findById(0);
+			
+			Conventie c1=new Conventie();
+	        c1.setCompanie(com1);
+	        c1.setStudent(s1);
+	        c1.setLoculDesfasurarii("str. Republicii 10, Timisoara");
+	        c1.setDurataInPlanulDeInvatamant(240);
+	        c1.setDataInceput(Date.valueOf("2024.06.01"));
+	        c1.setDataSfarsit(Date.valueOf("2024.09.01"));
+	        c1.setNumeProiect("Proiect Alfa");
+	        c1.setTutore(t1);
+	        c1.setCadruDidacticSupervizor(cd1);
+	        c1.setNumarCredite(240);
+	        c1.setIndemnizatii("niciuna");
+	        c1.setAvantaje("niciunul");
+	        c1.setAltePrecizari("nu sunt");
+	        c1.setDataIntocmirii(Date.valueOf("2024.06.01"));
+	        repository.save(c1);
+				
+			log.info("ending tcs initialization...");
+	    };
+	}
+	*/
+	
+	/*
+	@Bean
+	public CommandLineRunner loadDataUser(UserRepository userRepository) 
+	{
+	    return (args) -> {	
+			log.info("starting users initialization...");
+	        User u1=new User("ciprian","chirila","123456");
+	        userRepository.save(u1);
+	        
+	        User u2=new User("oana","chirila","123456");
+	        userRepository.save(u2);
+	        
+	        User u3=new User("doru","vatau","123456");
+	        userRepository.save(u3);
+	        
+			log.info("ending users initialization...");
+	    };
+	}
+	*/

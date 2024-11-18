@@ -1,0 +1,225 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<title>Conventii 1.0</title>
+	<base href="/">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<link rel="icon" type="image/x-icon" href="favicon.ico">
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+</head>
+
+<body>
+	<div class="container">
+	<nav aria-label="breadcrumb">
+	  <ol class="breadcrumb">
+	    <li class="breadcrumb-item"><a href="/">Acasa</a></li>
+	    <li class="breadcrumb-item active" aria-current="page">Conventii</li>
+	  </ol>
+	</nav>	
+		
+	<h2>Conventii</h2>
+	<hr>
+	
+	<form action="#" th:action="@{/conventie-update/{id}(id=${conventie.id})}" th:object="${conventie}" method="post">	  
+		<div class="row row-cols-4">
+			<div class="col-sm">
+		    	<label for="companie">Companie</label>			    
+	    	</div>
+
+			<div class="col-sm">		    	
+				<select th:field="*{companie}">
+				    <option th:each="companie : ${companii}" th:value="${companie.id}" th:text="${companie.nume}">
+				    </option>
+				</select>		    	
+	    	</div>
+
+			<div class="col-sm">
+		    	<label for="student">Student</label>			    
+	    	</div>
+
+			<div class="col-sm">
+				TODO
+	    	</div>
+    	</div>
+
+		<hr>
+	    
+		<div class="row row-cols-4">
+			<div class="col-sm">
+			    <label for="loculDesfasurarii">Locul desfasurarii</label>
+	    	</div>
+			<div class="col-sm">
+			    <input type="text" th:field="*{loculDesfasurarii}" id="loculDesfasurarii" placeholder="Locul desfasurarii">
+			    <span th:if="${#fields.hasErrors('loculDesfasurarii')}" th:errors="*{loculDesfasurarii}"></span>
+	    	</div>
+		
+			<div class="col-sm">
+			    <label for="durataInPlanulDeInvatamant">Durata in planul de invatamant<br> (240 ore la cti-ro, cti-en, is;<br> 160 ore la info-zi, info-id)</label>
+	    	</div>
+			<div class="col-sm">
+			    <input type="text" th:field="*{durataInPlanulDeInvatamant}" id="durataInPlanulDeInvatamant" placeholder="Durata in planul de invatamant">
+			    <span th:if="${#fields.hasErrors('durataInPlanulDeInvatamant')}" th:errors="*{durataInPlanulDeInvatamant}"></span>
+	    	</div>
+	    </div>
+
+		<hr>
+		
+		<div class="row row-cols-4">
+			<div class="col-sm">
+			    <label for="dataInceput">Data inceput<br> (de ex. 01.07.2025)</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{dataInceput}" id="dataInceput" placeholder="Data inceput">
+			    <span th:if="${#fields.hasErrors('dataInceput')}" th:errors="*{dataInceput}"></span>
+	    	</div>
+		
+			<div class="col-sm">
+			    <label for="dataSfarsit">Data sfarsit<br> (de ex. 01.09.2025)</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{dataSfarsit}" id="dataSfarsit" placeholder="Data sfarsit">
+			    <span th:if="${#fields.hasErrors('dataSfarsit')}" th:errors="*{dataSfarsit}"></span>
+	    	</div>
+	    </div>
+		
+		<hr>
+		
+		<div class="row row-cols-4">
+			<div class="col-sm">
+			    <label for="numeProiect">Nume proiect</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{numeProiect}" id="numeProiect" placeholder="Nume proiect">
+			    <span th:if="${#fields.hasErrors('numeProiect')}" th:errors="*{numeProiect}"></span>
+	    	</div>
+		
+			<div class="col-sm">
+				&nbsp;
+	    	</div>
+	    	
+			<div class="col-sm">
+				&nbsp;
+	    	</div>
+	    </div>
+
+		<hr>
+		
+		<div class="row row-cols-4">
+			<div class="col-sm">
+			    <label for="tutore">Tutore</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{tutore.nume}" id="tutore" placeholder="Tutore">
+			    <span th:if="${#fields.hasErrors('tutore')}" th:errors="*{tutore}"></span>
+	    	</div>
+		
+			<div class="col-sm">
+			    <label for="cadruDidactic">Cadru didactic</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+				<select th:field="*{cadruDidactic}">
+				    <option th:each="cadruDidactic : ${cadreDidactice}" th:value="${cadruDidactic.id}" th:text="${cadruDidactic.nume}+' '+${cadruDidactic.prenume}">
+				    </option>
+				</select>		    	
+	    	</div>
+	    </div>
+
+		<hr>
+		
+		<div class="row row-cols-4">
+			<div class="col-sm">
+			    <label for="numarCredite">Numar credite <br> (8 la cti-ro, cti-en, is; <br> 7 la info-zi, info-id)</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{numarCredite}" id="numarCredite" placeholder="Numar credite">
+			    <span th:if="${#fields.hasErrors('numarCredite')}" th:errors="*{numarCredite}"></span>
+	    	</div>
+		
+			<div class="col-sm">
+				&nbsp;
+	    	</div>
+	    	
+			<div class="col-sm">
+				&nbsp;
+	    	</div>
+	    </div>
+
+		<hr>
+
+		<div class="row row-cols-4">
+			<div class="col-sm">
+			    <label for="indemnizatii">Indemnizatii (de ex. 1000 lei pe luna)</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{indemnizatii}" id="indemnizatii" placeholder="Indemnizatii">
+			    <span th:if="${#fields.hasErrors('indemnizatii')}" th:errors="*{indemnizatii}"></span>
+	    	</div>
+		
+			<div class="col-sm">
+			    <label for="avantaje">Avantaje (de ex. transport si masa incluse)</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{avantaje}" id="avantaje" placeholder="Avantaje">
+			    <span th:if="${#fields.hasErrors('avantaje')}" th:errors="*{avantaje}"></span>
+	    	</div>
+	    </div>
+	    
+		<hr>
+
+		<div class="row row-cols-4">
+			<div class="col-sm">
+			    <label for="altePrecizari">Alte precizari</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{altePrecizari}" id="altePrecizari" placeholder="Alte precizari">
+			    <span th:if="${#fields.hasErrors('altePrecizari')}" th:errors="*{altePrecizari}"></span>
+	    	</div>
+		
+			<div class="col-sm">
+				&nbsp;
+	    	</div>
+	    	
+			<div class="col-sm">
+				&nbsp;
+	    	</div>
+	    </div>
+
+		<hr>
+		
+		<div class="row row-cols-4">
+			<div class="col-sm">
+			    <label for="dataIntocmirii">Data intocmirii <br> (de ex. 01.07.2024)</label>
+	    	</div>
+	    	
+			<div class="col-sm">
+			    <input type="text" th:field="*{dataIntocmirii}" id="dataIntocmirii" placeholder="Data intocmirii">
+			    <span th:if="${#fields.hasErrors('dataIntocmirii')}" th:errors="*{dataIntocmirii}"></span>
+	    	</div>
+		
+			<div class="col-sm">
+				&nbsp;
+	    	</div>
+	    	
+			<div class="col-sm">
+				&nbsp;
+	    	</div>
+	    </div>
+
+		<hr>
+		
+	    <input type="submit" value="Salveaza conventie">
+	</form>
+	</div>
+  	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+</body>
+</html>
