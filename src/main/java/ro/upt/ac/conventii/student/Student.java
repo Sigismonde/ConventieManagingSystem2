@@ -2,6 +2,7 @@ package ro.upt.ac.conventii.student;
 
 import java.sql.Date;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -26,7 +27,9 @@ public class Student
 	private String anUniversitar;
 	private String facultate;
 	private String specializare;
-	private int anDeStudiu;
+	@Column(name = "an_de_studiu")
+    private Integer anDeStudiu;
+	@Column(unique = true)
 	private String email;
 	private String telefon;
 	

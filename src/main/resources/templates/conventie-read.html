@@ -1,90 +1,98 @@
-﻿
 <!doctype html>
-<html lang="en">
+<html lang="ro" xmlns:th="http://www.thymeleaf.org">
 <head>
-  <meta charset="utf-8">
-  <title>Conventii 1.0</title>
-  <base href="/">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-9ndCyUaIbzAi2FUVXJi0CjmCapSmO7SnpJef0486qhLnuZ2cdeRhO02iuK6FUUVM" crossorigin="anonymous">
+    <meta charset="UTF-8">
+    <title>Convenții 1.0</title>
+    <base href="/">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 
 <body>
-	<div class="container">
-		<nav aria-label="breadcrumb">
-		  <ol class="breadcrumb">
-		    <li class="breadcrumb-item"><a href="/">Acasa</a></li>
-		    <li class="breadcrumb-item active" aria-current="page">Conventii</li>
-		  </ol>
-		</nav>	
-		<div th:switch="${conventii}">
-		    <h2 th:case="null">Nu este nicio conventie in baza de date!</h2>
-	        <div th:case="*">
-	            <h2>Conventii</h2>
-	            <table class="table table-small">
-	                <thead>
-	                    <tr>
-	                        <th scope="col">#</th>
-	                        <th scope="col">Editeaza</th>
-	                        <th scope="col">Sterge</th>
-	                        
-	                        <th scope="col">Companie</th>
-	                        <th scope="col">Student</th>
-	                        
-	                        <th scope="col">Locul desfasurarii</th>	                    
-	                        <th scope="col">Durata in planul de invatamant</th>	                      
-	                        <th scope="col">Data inceput</th>
-	                        <th scope="col">Data sfarsit</th>
-	                        
-	                        <th scope="col">Stagiu pregatire practica</th>
-	                        <th scope="col">Nume proiect</th>
-	                        
-	                        <th scope="col">Tutore</th>
-	                        <th scope="col">Cadru didactic</th>
-	                        
-	                        <th scope="col">Numar credite</th>
-	                        <th scope="col">Indemnizatii</th>
-	                        <th scope="col">Avantaje</th>
-	                        <th scope="col">Alte precizari</th>
-	                        
-	                        <th scope="col">Data intocmirii</th>
-	                    </tr>
-	                </thead>
-	                <tbody>
-		                <tr th:each="conventie : ${conventii}">
-		                    <td scope="col" th:text="${conventie.id}"></td>		                    
-		                    <td><a th:href="@{/conventie-edit/{id}(id=${conventie.id})}">Editeaza</a></td>
-		                    <td><a th:href="@{/conventie-delete/{id}(id=${conventie.id})}">Sterge</a></td>
-		                    	                    
-		                    <td th:text="${conventie.companie.nume}"></td>
-		                    <td th:text="${conventie.student.nume}"></td>
-		                    
-		                    <td th:text="${conventie.loculDesfasurarii}"></td>
-		                    <td th:text="${conventie.durataInPlanulDeInvatamant}"></td>
-		                    <td th:text="${conventie.dataInceput}"></td>
-		                    <td th:text="${conventie.dataSfarsit}"></td>
-		                    
-		                    <td th:text="${conventie.numeProiect}"></td>
-		                    <td th:text="${conventie.numeProiect}"></td>
-		                    
-		                    <td th:text="${conventie.tutore.nume}"></td>
-		                    <td th:text="${conventie.cadruDidactic.nume}"></td>
+    <div class="container">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Acasă</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Convenții</li>
+            </ol>
+        </nav>
 
-		                    <td th:text="${conventie.numarCredite}"></td>
-		                    <td th:text="${conventie.indemnizatii}"></td>
-		                    <td th:text="${conventie.avantaje}"></td>
-		                    <td th:text="${conventie.altePrecizari}"></td>
-		                    
-		                    <td th:text="${conventie.dataIntocmirii}"></td>
-		                </tr>
-	            	</tbody>
-	        	</table>
-		    </div>      
-		    <p><a href="/conventie-create">Adauga o conventie noua</a></p>
-		</div>
-	</div>
+        <div th:switch="${conventii}">
+            <h2 th:case="null">Nu este nicio convenție în baza de date!</h2>
+            <div th:case="*">
+                <h2>Convenții</h2>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th scope="col">#</th>
+                            <th scope="col">Editeaza</th>
+                            <th scope="col">Sterge</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Companie</th>
+                            <th scope="col">Student</th>
+                            <th scope="col">Locul desfășurării</th>
+                            <th scope="col">Durata în planul de învățământ</th>
+                            <th scope="col">Data început</th>
+                            <th scope="col">Data sfârșit</th>
+                            <th scope="col">Proiect</th>
+                            <th scope="col">Tutore</th>
+                            <th scope="col">Cadru didactic</th>
+                            <th scope="col">Număr credite</th>
+                            <th scope="col">Indemnizații</th>
+                            <th scope="col">Avantaje</th>
+                            <th scope="col">Alte precizări</th>
+                            <th scope="col">Data întocmirii</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:each="conventie : ${conventii}">
+                            <td th:text="${conventie.id}"></td>
+                            <td>
+                                <a th:href="@{/conventie-edit/{id}(id=${conventie.id})}" 
+                                   class="btn btn-primary btn-sm">Editează</a>
+                            </td>
+                            <td>
+                                <a th:href="@{/conventie-delete/{id}(id=${conventie.id})}" 
+                                   class="btn btn-danger btn-sm"
+                                   onclick="return confirm('Ești sigur că vrei să ștergi această convenție?')">
+                                    Șterge
+                                </a>
+                            </td>
+                            <td>
+                                <span th:if="${conventie.status == T(ro.upt.ac.conventii.enums.ConventieStatus).IN_ASTEPTARE}" 
+                                      class="badge bg-warning">În așteptare</span>
+                                <span th:if="${conventie.status == T(ro.upt.ac.conventii.enums.ConventieStatus).APROBATA}" 
+                                      class="badge bg-success">Aprobată</span>
+                                <span th:if="${conventie.status == T(ro.upt.ac.conventii.enums.ConventieStatus).RESPINSA}" 
+                                      class="badge bg-danger">Respinsă</span>
+                            </td>
+                            <td th:text="${conventie.companie?.nume}"></td>
+                            <td th:text="${conventie.student?.nume + ' ' + conventie.student?.prenume}"></td>
+                            <td th:text="${conventie.loculDesfasurarii}"></td>
+                            <td th:text="${conventie.durataInPlanulDeInvatamant}"></td>
+                            <td th:text="${#dates.format(conventie.dataInceput, 'dd.MM.yyyy')}"></td>
+                            <td th:text="${#dates.format(conventie.dataSfarsit, 'dd.MM.yyyy')}"></td>
+                            <td th:text="${conventie.numeProiect}"></td>
+                            <td th:text="${conventie.tutore?.nume + ' ' + conventie.tutore?.prenume}"></td>
+                            <td th:text="${conventie.cadruDidactic?.nume + ' ' + conventie.cadruDidactic?.prenume}"></td>
+                            <td th:text="${conventie.numarCredite}"></td>
+                            <td th:text="${conventie.indemnizatii}"></td>
+                            <td th:text="${conventie.avantaje}"></td>
+                            <td th:text="${conventie.altePrecizari}"></td>
+                            <td th:text="${#dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy')}"></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p>
+                <a href="/conventie-create" class="btn btn-primary">
+                    <i class="bi bi-plus-circle"></i> Adaugă o convenție nouă
+                </a>
+            </p>
+        </div>
+    </div>
 
-	<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-geWF76RCwLtnZ8qwWowPQNguL3RmwHVBC9FhGdlKrxdiJJigb/j/68SIy3Te4Bkz" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 </body>
 </html>

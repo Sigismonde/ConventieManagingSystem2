@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard Prodecan</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/prodecan/dashboard">
+                <i class="fas fa-university me-2"></i>Portal Convenții - Prodecan
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
+                            <i class="fas fa-plus me-1"></i>Adaugă
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/cadruDidactic-create">
+                                <i class="fas fa-chalkboard-teacher me-2"></i>Profesor
+                            </a></li>
+                            <li><a class="dropdown-item" href="/companie-create">
+                                <i class="fas fa-building me-2"></i>Companie
+                            </a></li>
+                            <li><a class="dropdown-item" href="/student-create">
+                                <i class="fas fa-user-graduate me-2"></i>Student
+                            </a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/prodecan/conventii">
+                            <i class="fas fa-file-signature me-1"></i>Convenții
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/prodecan/studenti">
+                            <i class="fas fa-users me-1"></i>Studenți
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/prodecan/companii">
+                            <i class="fas fa-building me-1"></i>Companii
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/prodecan/cadre-didactice">
+                            <i class="fas fa-chalkboard-teacher me-1"></i>Cadre Didactice
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link">
+    <i class="fas fa-user me-1"></i>
+    <span th:text="${user != null ? user.numeComplet : 'Utilizator'}">Nume Utilizator</span>
+</span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post">
+                            <button class="btn btn-link nav-link" type="submit">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        <!-- Statistici -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="card text-center bg-primary text-white">
+                    <div class="card-body">
+                        <i class="fas fa-file-signature fa-3x mb-3"></i>
+                        <h5 class="card-title">Convenții Nesemnate</h5>
+                        <p class="card-text" th:text="${conventiiNesemnate.size()}">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-success text-white">
+                    <div class="card-body">
+                        <i class="fas fa-user-graduate fa-3x mb-3"></i>
+                        <h5 class="card-title">Studenți</h5>
+                        <p class="card-text" th:text="${totalStudenti != null ? totalStudenti : '0'}">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-info text-white">
+                    <div class="card-body">
+                        <i class="fas fa-building fa-3x mb-3"></i>
+                        <h5 class="card-title">Companii</h5>
+                        <p class="card-text" th:text="${totalCompanii != null ? totalCompanii : '0'}">0</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-center bg-warning text-white">
+                    <div class="card-body">
+                        <i class="fas fa-chalkboard-teacher fa-3x mb-3"></i>
+                        <h5 class="card-title">Cadre Didactice</h5>
+                        <p class="card-text" th:text="${totalCadreDidactice != null ? totalCadreDidactice : '0'}">0</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Convenții Nesemnate -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clock me-2"></i>Convenții în Așteptare
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Companie</th>
+                                <th>Data</th>
+                                <th>Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${conventiiNesemnate.empty}">
+                                <td colspan="4" class="text-center">Nu există convenții în așteptare.</td>
+                            </tr>
+                            <tr th:each="conventie : ${conventiiNesemnate}">
+                                <td th:text="${conventie.student != null ? conventie.student.numeComplet : 'N/A'}">Nume Student</td>
+    <td th:text="${conventie.companie != null ? conventie.companie.nume : 'N/A'}">Nume Companie</td>
+    <td th:text="${conventie.dataIntocmirii != null ? #dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy') : 'N/A'}">Data</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <form th:action="@{/prodecan/conventie/aproba/{id}(id=${conventie.id})}" 
+                                              method="post" class="me-1">
+                                            <button class="btn btn-success btn-sm">
+                                                <i class="fas fa-check"></i> Aprobă
+                                            </button>
+                                        </form>
+                                        <form th:action="@{/prodecan/conventie/respinge/{id}(id=${conventie.id})}" 
+                                              method="post">
+                                            <button class="btn btn-danger btn-sm">
+                                                <i class="fas fa-times"></i> Respinge
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Convenții Semnate Recent -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-check-circle me-2"></i>Convenții Semnate Recent
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Companie</th>
+                                <th>Data</th>
+                                <th>Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${conventiiSemnate.empty}">
+                                <td colspan="4" class="text-center">Nu există convenții semnate recent.</td>
+                            </tr>
+                            <tr th:each="conventie : ${conventiiSemnate}">
+                                <td th:text="${conventie.student.numeComplet}">Nume Student</td>
+                                <td th:text="${conventie.companie.nume}">Nume Companie</td>
+                                <td th:text="${#dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy')}">Data</td>
+                                <td>
+                                    <a th:href="@{/conventie-export/{id}(id=${conventie.id})}" 
+                                       class="btn btn-primary btn-sm">
+                                        <i class="fas fa-download"></i> Export
+                                    </a>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

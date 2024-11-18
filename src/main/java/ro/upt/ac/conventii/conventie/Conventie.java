@@ -4,13 +4,17 @@ import java.sql.Date;
 
 import jakarta.persistence.Embedded;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.OneToOne;
 import ro.upt.ac.conventii.cadruDidactic.CadruDidactic;
-import ro.upt.ac.conventii.companie.Companie;
+import ro.upt.ac.conventii.companie.*;
 import ro.upt.ac.conventii.student.Student;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.JoinColumn;
 
 @Entity
 public class Conventie 
@@ -19,11 +23,13 @@ public class Conventie
     @GeneratedValue(strategy = GenerationType.AUTO)
 	private int id;
 	
-	@OneToOne
+	 @ManyToOne  
+	 @JoinColumn(name = "companie_id")
 	private Companie companie;
 
-	@OneToOne
-	private Student student;
+	 @ManyToOne
+	    @JoinColumn(name = "student_id")
+	    private Student student;
 	
 	private String loculDesfasurarii;
 	private Integer durataInPlanulDeInvatamant;
@@ -32,8 +38,9 @@ public class Conventie
 	private String numeProiect;
 	
 	@Embedded
-	private Tutore tutore;
-	@OneToOne
+	private Tutore tutore=new Tutore();
+	@ManyToOne  
+    @JoinColumn(name = "cadru_didactic_id")
 	private CadruDidactic cadruDidactic;
 	
 	private int numarCredite;
@@ -42,9 +49,21 @@ public class Conventie
 	private String altePrecizari;
 	private Date dataIntocmirii;
 	
+	@Enumerated(EnumType.STRING)
+    private ConventieStatus status = ConventieStatus.IN_ASTEPTARE;
+
+	
 	public Conventie()
 	{
 	}
+	
+	   public ConventieStatus getStatus() {
+	        return status;
+	    }
+
+	    public void setStatus(ConventieStatus status) {
+	        this.status = status;
+	    }
 	
 	public int getId()
 	{

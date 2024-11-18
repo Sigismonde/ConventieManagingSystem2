@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ro" xmlns:th="http://www.thymeleaf.org" 
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{dashboards/dashboard-layout}">
+
+<div layout:fragment="sidebar-content">
+    <ul class="nav flex-column">
+        <li class="nav-item">
+            <a class="nav-link active" href="#">
+                <i class="bi bi-house-door"></i> Dashboard
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="bi bi-file-text"></i> Convenții Active
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="bi bi-plus-circle"></i> Creare Convenție
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="bi bi-clock-history"></i> Istoric
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" href="#">
+                <i class="bi bi-person"></i> Profil
+            </a>
+        </li>
+    </ul>
+</div>
+
+<div layout:fragment="main-content">
+    <div class="container-fluid">
+        <h2 class="mb-4">Dashboard Student</h2>
+        
+        <!-- Stats Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="card text-white bg-primary">
+                    <div class="card-body">
+                        <h5 class="card-title">Convenții Active</h5>
+                        <p class="card-text display-6">1</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-success">
+                    <div class="card-body">
+                        <h5 class="card-title">Ore Efectuate</h5>
+                        <p class="card-text display-6">120</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-info">
+                    <div class="card-body">
+                        <h5 class="card-title">Ore Rămase</h5>
+                        <p class="card-text display-6">120</p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="card text-white bg-warning">
+                    <div class="card-body">
+                        <h5 class="card-title">Zile Până la Final</h5>
+                        <p class="card-text display-6">45</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Active Convention -->
+        <div class="card mb-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Convenție Activă</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Companie:</strong> Continental Automotive</p>
+                        <p><strong>Perioada:</strong> 01.07.2024 - 15.08.2024</p>
+                        <p><strong>Status:</strong> <span class="badge bg-success">Activă</span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Tutore:</strong> Ioan Popescu</p>
+                        <p><strong>Profesor:</strong> Maria Ionescu</p>
+                        <p><strong>Proiect:</strong> Dezvoltare Software Auto</p>
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <a href="#" class="btn btn-primary">Vezi Detalii</a>
+                    <a href="#" class="btn btn-outline-primary">Descarcă Document</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Timeline -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="card-title mb-0">Activitate Recentă</h5>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="text-muted small">Acum 2 zile</div>
+                        <div>Convenție aprobată de prodecan</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="text-muted small">Acum 3 zile</div>
+                        <div>Document încărcat de companie</div>
+                    </div>
+                    <div class="timeline-item">
+                        <div class="text-muted small">Acum 5 zile</div>
+                        <div>Convenție creată</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</html>
