@@ -32,8 +32,7 @@ Interfata student
 
 - login pe baza de email si parola generata
 
-- se porneste de la fisierul de conventie din portalul AC (https://ac.upt.ro/practica-licenta/
-) pe care studentul trebuie sa il completeze si pe care prodecanul trebuie sa il semneze
+- se porneste de la fisierul de conventie din portalul AC (https://ac.upt.ro/practica-licenta/) pe care studentul trebuie sa il completeze si pe care prodecanul trebuie sa il semneze
 
 - se ia fisierul de conventie DOC si se extrag campurile pe care in mod normal il completeaza studentul iar pe baza lor se face un formular web
 
