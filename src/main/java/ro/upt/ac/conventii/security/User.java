@@ -7,6 +7,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -31,7 +32,10 @@ public class User implements UserDetails {
     private String facultate;
     private String specializare;
     private String titluAcademic;
-
+    
+    @Column(name = "first_login")
+    private Boolean firstLogin;
+    
     public User() {
         this.enabled = true;
     }
@@ -51,6 +55,8 @@ public class User implements UserDetails {
         return Collections.singletonList(authority);
     }
 
+
+    
     @Override
     public String getUsername() {
         return email;
@@ -70,7 +76,24 @@ public class User implements UserDetails {
     public boolean isCredentialsNonExpired() {
         return true;
     }
+    
+    
 
+
+    
+
+    public Boolean isFirstLogin() {
+        // Returnăm true doar pentru studenți și doar dacă firstLogin este null sau true
+        if ("ROLE_STUDENT".equals(this.getRole())) {
+            return firstLogin == null || firstLogin;
+        }
+        return false;  // Pentru non-studenți returnăm mereu false
+    }
+
+    public void setFirstLogin(Boolean firstLogin) {
+        this.firstLogin = firstLogin;
+    }
+    
     @Override
     public boolean isEnabled() {
         return enabled;

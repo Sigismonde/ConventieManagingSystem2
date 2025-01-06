@@ -49,6 +49,10 @@ public class CadruDidactic
 	{
 		return prenume;
 	}
+	
+	 public String getNumeComplet() {
+	        return this.nume + " " + this.prenume;
+	    }
 
 	public void setPrenume(String prenume)
 	{

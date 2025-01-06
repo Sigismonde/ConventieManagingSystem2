@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Convențiile Mele - Student</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/student/dashboard">
+                <i class="fas fa-university me-2"></i>Portal Convenții
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/student/conventii">
+                            <i class="fas fa-file-signature me-1"></i>Convențiile Mele
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/student/conventie-noua">
+                            <i class="fas fa-plus me-1"></i>Convenție Nouă
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-user me-1"></i>
+                            <span th:text="${user.numeComplet}">Nume Student</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" class="nav-link">
+                            <button type="submit" class="btn btn-link text-white p-0">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+    
+    <div class="container mt-4">
+    <!-- Mesaje de succes -->
+    <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle me-2"></i>
+        <span th:text="${successMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <!-- Mesaje de eroare -->
+    <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-circle me-2"></i>
+        <span th:text="${errorMessage}"></span>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+
+    <div class="container mt-4">
+        <!-- Card principal -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-file-signature me-2"></i>Convențiile Mele
+                </h5>
+                <a href="/student/conventie-noua" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus me-1"></i>Crează Convenție Nouă
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Companie</th>
+                                <th>Perioada</th>
+                                <th>Proiect</th>
+                                <th>Status</th>
+                                <th>Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${conventii.empty}">
+                                <td colspan="5" class="text-center">Nu există convenții create.</td>
+                            </tr>
+                            <tr th:each="conventie : ${conventii}">
+                                <td th:text="${conventie.companie != null ? conventie.companie.nume : 'N/A'}">Nume Companie</td>
+                                <td>
+                                    <span th:text="${conventie.dataInceput != null ? #dates.format(conventie.dataInceput, 'dd.MM.yyyy') : 'N/A'}"></span>
+                                    -
+                                    <span th:text="${conventie.dataSfarsit != null ? #dates.format(conventie.dataSfarsit, 'dd.MM.yyyy') : 'N/A'}"></span>
+                                </td>
+                                <td th:text="${conventie.numeProiect}">Nume Proiect</td>
+                                <td>
+                                   <span th:with="statusClass=${
+  conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE ? 'bg-warning' : 
+  conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA ? 'bg-success' : 
+  conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA ? 'bg-danger' : 
+  'bg-info'}"
+      th:class="|badge ${statusClass}|"
+      th:text="${conventie.status}">
+      Status
+</span>
+                                </td>
+                               <!-- În secțiunea de acțiuni din tabel -->
+<td>
+   <div class="btn-group">
+    <!-- Vizualizare - pentru toate statusurile -->
+    <a th:href="@{'/student/conventie-export/' + ${conventie.id}}" 
+       class="btn btn-primary btn-sm me-1" 
+       title="Vizualizează"
+       target="_blank">
+        <i class="fas fa-eye"></i>
+    </a>
+
+     <!-- Editare - doar pentru NETRIMIS sau RESPINSA -->
+    <a th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).NETRIMIS || 
+                conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA}"
+       th:href="@{'/student/conventie-edit/' + ${conventie.id}}" 
+       class="btn btn-warning btn-sm me-1" 
+       title="Editează">
+        <i class="fas fa-edit"></i>
+    </a>
+
+
+
+    <!-- Buton Descărcare Word -->
+    <a th:href="@{'/student/conventie-export-word/' + ${conventie.id}}" 
+       class="btn btn-success btn-sm me-1"
+       title="Descarcă Word">
+        <i class="fas fa-file-word"></i>
+    </a>
+
+    <!-- Buton Descărcare PDF -->
+    <a th:href="@{'/student/conventie-export-pdf/' + ${conventie.id}}" 
+       class="btn btn-danger btn-sm me-1"
+       title="Descarcă PDF">
+        <i class="fas fa-file-pdf"></i>
+    </a>
+
+
+
+    
+
+    
+
+    <!-- Trimitere - doar pentru NETRIMIS -->
+<form th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).NETRIMIS}"
+      th:action="@{'/student/conventie-trimite/' + ${conventie.id}}" 
+      method="post"
+      class="d-inline">
+    <button type="submit" 
+            class="btn btn-success btn-sm me-1"
+            onclick="return confirm('Sigur doriți să trimiteți convenția?')">
+        <i class="fas fa-paper-plane"></i>
+    </button>
+</form>
+</div>
+
+
+
+    <!-- Buton Ștergere -->
+    <a th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).NETRIMIS || 
+                conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA}"
+       th:href="@{'/student/conventie-sterge/' + ${conventie.id}}"
+       class="btn btn-danger btn-sm me-1"
+       title="Șterge"
+       onclick="return confirm('Ești sigur că vrei să ștergi convenția?')">
+        <i class="fas fa-trash"></i>
+    </a>
+
+        
+       
+        
+       
+    
+
+
+    </div>
+</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

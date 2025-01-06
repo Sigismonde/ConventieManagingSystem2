@@ -7,6 +7,8 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 import ro.upt.ac.conventii.prodecan.Prodecan;
 import ro.upt.ac.conventii.prodecan.ProdecanRepository;
+import ro.upt.ac.conventii.prorector.Prorector;
+import ro.upt.ac.conventii.prorector.ProrectorRepository;
 import ro.upt.ac.conventii.security.User;
 import ro.upt.ac.conventii.security.UserRepository;
 
@@ -18,7 +20,7 @@ public class Application {
     }
 
     @Bean
-    public CommandLineRunner loadTestData(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, ProdecanRepository prodecanRepository) {
+    public CommandLineRunner loadTestData(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, ProdecanRepository prodecanRepository, ProrectorRepository prorectorRepository) {
         return args -> {
 System.out.println("Încercare creare utilizator prodecan de test...");
             
@@ -72,6 +74,39 @@ System.out.println("Încercare creare utilizator prodecan de test...");
                 System.out.println("Student creat cu succes!");
                 System.out.println("Email: student@test.com");
                 System.out.println("Parola: password");
+            }
+            System.out.println("Încercare creare utilizator prorector de test...");
+            
+            if (userRepository.findByEmail("prorector@test.com") == null) {
+                User userProrector = new User();
+                userProrector.setEmail("prorector@test.com");
+                userProrector.setNume("Dumitrel");
+                userProrector.setPrenume("Alina");
+                userProrector.setPassword(passwordEncoder.encode("password"));
+                userProrector.setRole("ROLE_PRORECTOR");
+                userProrector.setEnabled(true);
+                userProrector.setFacultate("Automatica si Calculatoare");
+                userProrector.setDepartament("Calculatoare");
+                userProrector.setTitluAcademic("Prof. dr. ing.");
+                
+                userRepository.save(userProrector);
+                
+                Prorector prorector = new Prorector();
+                prorector.setEmail("prorector@test.com");
+                prorector.setNume("Dumitrel");
+                prorector.setPrenume("Alina");
+                prorector.setFacultate("Automatica si Calculatoare");
+                prorector.setDepartament("Calculatoare");
+                prorector.setTitluAcademic("Prof. dr. ing.");
+                prorector.setTelefon("0712345678");
+                
+                prorectorRepository.save(prorector);
+                
+                System.out.println("Prorector creat cu succes!");
+                System.out.println("Email: prorector@test.com");
+                System.out.println("Parola: password");
+            } else {
+                System.out.println("Prorectorul există deja în baza de date!");
             }
         };
     }

@@ -28,15 +28,31 @@ public class Student
 	private String facultate;
 	private String specializare;
 	@Column(name = "an_de_studiu")
-    private Integer anDeStudiu;
+	private Integer anDeStudiu = 1; // Setăm default la 1
+	   
 	@Column(unique = true)
 	private String email;
 	private String telefon;
 	
-	public Student()
-	{
-	}
 
+    
+    // Constructor
+    public Student() {
+        this.anDeStudiu = 1; // Setăm și în constructor pentru siguranță
+    }
+    
+    // Getter pentru anDeStudiu
+    public int getAnDeStudiu() {
+        return anDeStudiu != null ? anDeStudiu : 1; // Returnăm 1 dacă e null
+    }
+    
+    public String getNumeComplet() {
+        return nume + " " + prenume;
+    }
+    
+    public void setAnDeStudiu(Integer anDeStudiu) {
+        this.anDeStudiu = anDeStudiu != null ? anDeStudiu : 1; // Setăm 1 dacă e null
+    }
 	public int getId()
 	{
 		return id;
@@ -168,15 +184,7 @@ public class Student
 		this.specializare = specializare;
 	}
 
-	public int getAnDeStudiu()
-	{
-		return anDeStudiu;
-	}
 
-	public void setAnDeStudiu(int anDeStudiu)
-	{
-		this.anDeStudiu = anDeStudiu;
-	}
 
 	public String getEmail()
 	{

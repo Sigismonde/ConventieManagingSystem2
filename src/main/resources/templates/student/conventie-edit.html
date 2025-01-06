@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Editare Convenție - Student</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/student/dashboard">
+                <i class="fas fa-university me-2"></i>Portal Convenții
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/student/conventii">
+                            <i class="fas fa-file-signature me-1"></i>Convențiile Mele
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-user me-1"></i>
+                            <span th:text="${user.numeComplet}">Nume Student</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" class="nav-link">
+                            <button type="submit" class="btn btn-link text-white p-0">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-edit me-2"></i>Editare Convenție
+                </h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/student/conventie-update/{id}(id=${conventie.id})}" 
+                      th:object="${conventie}" 
+                      method="post">
+
+                    <!-- Student info - readonly -->
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Student:</label>
+                            <input type="text" class="form-control" 
+                                   th:value="${user.nume + ' ' + user.prenume}" 
+                                   readonly>
+                            <input type="hidden" th:field="*{student.id}">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Facultate:</label>
+                            <input type="text" class="form-control" 
+                                   th:value="${user.facultate}" 
+                                   readonly>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Specializare:</label>
+                            <input type="text" class="form-control" 
+                                   th:value="${user.specializare}" 
+                                   readonly>
+                        </div>
+                    </div>
+
+                    <!-- Companie și Locație -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Informații despre Practică</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label">Companie:</label>
+                                    <select class="form-select" th:field="*{companie}" required>
+                                        <option value="">Selectează compania</option>
+                                        <option th:each="comp : ${companii}"
+                                                th:value="${comp.id}"
+                                                th:text="${comp.nume}">
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Locul desfășurării:</label>
+                                    <input type="text" class="form-control" 
+                                           th:field="*{loculDesfasurarii}" required>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label">Data început:</label>
+                                    <input type="date" class="form-control" 
+                                           th:field="*{dataInceput}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Data sfârșit:</label>
+                                    <input type="date" class="form-control" 
+                                           th:field="*{dataSfarsit}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Durată (ore):</label>
+                                    <input type="number" class="form-control" 
+                                           th:field="*{durataInPlanulDeInvatamant}" required>
+                                    <small class="text-muted">240 ore - CTI, IS / 160 ore - Info</small>
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-8">
+                                    <label class="form-label">Nume Proiect:</label>
+                                    <input type="text" class="form-control" 
+                                           th:field="*{numeProiect}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Număr Credite:</label>
+                                    <input type="number" class="form-control" 
+                                           th:field="*{numarCredite}" required>
+                                    <small class="text-muted">8 - CTI, IS / 7 - Info</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Coordonatori -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Coordonatori</h6>
+                        </div>
+                        <div class="card-body">
+                            <!-- Tutore -->
+                            <div class="row mb-3">
+                                <div class="col-12 mb-2">
+                                    <h6>Tutore din partea companiei</h6>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Nume:</label>
+                                    <input type="text" class="form-control" 
+                                           th:field="*{tutore.nume}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Prenume:</label>
+                                    <input type="text" class="form-control" 
+                                           th:field="*{tutore.prenume}" required>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label">Funcție:</label>
+                                    <input type="text" class="form-control" 
+                                           th:field="*{tutore.functie}" required>
+                                </div>
+                            </div>
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <label class="form-label">Email:</label>
+                                    <input type="email" class="form-control" 
+                                           th:field="*{tutore.email}" required>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Telefon:</label>
+                                    <input type="text" class="form-control" 
+                                           th:field="*{tutore.telefon}" required>
+                                </div>
+                            </div>
+
+                            <!-- Cadru Didactic -->
+                            <div class="row">
+                                <div class="col-12 mb-2">
+                                    <h6>Cadru didactic coordonator</h6>
+                                </div>
+                                <div class="col-md-12">
+                                    <select class="form-select" th:field="*{cadruDidactic}" required>
+                                        <option value="">Selectează cadrul didactic</option>
+                                        <option th:each="cd : ${cadreDidactice}"
+                                                th:value="${cd.id}"
+                                                th:text="${cd.nume + ' ' + cd.prenume + ' (' + cd.functie + ')'}">
+                                        </option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Alte detalii -->
+                    <div class="card mb-3">
+                        <div class="card-header">
+                            <h6 class="mb-0">Alte Detalii</h6>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Indemnizații:</label>
+                                    <input type="text" class="form-control" 
+                                           th:field="*{indemnizatii}">
+                                    <small class="text-muted">De exemplu: 1000 lei/lună</small>
+                                </div>
+                                <div class="col-md-12 mb-3">
+                                    <label class="form-label">Avantaje:</label>
+                                    <input type="text" class="form-control" 
+                                           th:field="*{avantaje}">
+                                    <small class="text-muted">De exemplu: Tichete de masă, Transport decontat</small>
+                                </div>
+                                <div class="col-md-12">
+                                    <label class="form-label">Alte precizări:</label>
+                                    <textarea class="form-control" 
+                                              th:field="*{altePrecizari}" 
+                                              rows="3"></textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Butoane -->
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Salvează Modificările
+                        </button>
+                        <a href="/student/conventii" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Înapoi la Lista de Convenții
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

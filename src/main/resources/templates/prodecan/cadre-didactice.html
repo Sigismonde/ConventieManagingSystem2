@@ -2,19 +2,65 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <title>Management Cadre Didactice - Prodecan</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Același navbar ca în dashboard -->
-    
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/prodecan/dashboard">
+                <i class="fas fa-university me-2"></i>Portal Convenții - Prodecan
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/prodecan/conventii">
+                            <i class="fas fa-file-signature me-1"></i>Convenții
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/prodecan/companii">
+                            <i class="fas fa-building me-1"></i>Companii
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/prodecan/cadre-didactice">
+                            <i class="fas fa-chalkboard-teacher me-1"></i>Cadre Didactice
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-user me-1"></i>
+                            <span th:text="${user.numeComplet}">Nume Prodecan</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post">
+                            <button class="btn btn-link nav-link" type="submit">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
     <div class="container mt-4">
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <h5 class="mb-0">
                     <i class="fas fa-chalkboard-teacher me-2"></i>Management Cadre Didactice
                 </h5>
-                <a href="/cadruDidactic-create" class="btn btn-primary btn-sm">
+                <a href="/prodecan/cadru-didactic-create" class="btn btn-primary btn-sm">
                     <i class="fas fa-plus me-1"></i>Adaugă Cadru Didactic
                 </a>
             </div>
@@ -33,22 +79,26 @@
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:each="cadru : ${cadreDidactice}">
-                                <td th:text="${cadru.nume}">Nume</td>
-                                <td th:text="${cadru.prenume}">Prenume</td>
-                                <td th:text="${cadru.functie}">Funcție</td>
-                                <td th:text="${cadru.specializare}">Specializare</td>
-                                <td th:text="${cadru.email}">Email</td>
-                                <td th:text="${cadru.telefon}">Telefon</td>
+                            <tr th:if="${cadreDidactice == null || cadreDidactice.empty}">
+                                <td colspan="7" class="text-center">Nu există cadre didactice înregistrate.</td>
+                            </tr>
+                            <tr th:each="cadruDidactic : ${cadreDidactice ?: new ArrayList()}">
+                                <td th:text="${cadruDidactic.nume}">Nume</td>
+                                <td th:text="${cadruDidactic.prenume}">Prenume</td>
+                                <td th:text="${cadruDidactic.functie}">Functie</td>
+                                <td th:text="${cadruDidactic.specializare}">Specializare</td>
+                                <td th:text="${cadruDidactic.email}">Email</td>
+                                <td th:text="${cadruDidactic.telefon}">Telefon</td>
                                 <td>
                                     <div class="btn-group">
-                                        <a th:href="@{/cadruDidactic-edit/{id}(id=${cadru.id})}" 
-                                           class="btn btn-primary btn-sm me-1">
+                                        <a th:href="@{/prodecan/cadru-didactic-edit/{id}(id=${cadruDidactic.id})}" 
+                                           class="btn btn-primary btn-sm me-1" title="Editează">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <a th:href="@{/cadruDidactic-delete/{id}(id=${cadru.id})}" 
+                                        <a th:href="@{/prodecan/cadru-didactic-delete/{id}(id=${cadruDidactic.id})}" 
                                            class="btn btn-danger btn-sm"
-                                           onclick="return confirm('Ești sigur că vrei să ștergi acest cadru didactic?')">
+                                           onclick="return confirm('Ești sigur că vrei să ștergi acest cadru didactic?')"
+                                           title="Șterge">
                                             <i class="fas fa-trash"></i>
                                         </a>
                                     </div>
@@ -60,5 +110,7 @@
             </div>
         </div>
     </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
