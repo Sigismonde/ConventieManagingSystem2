@@ -34,6 +34,39 @@
                     </div>
                     
                     <div class="mb-3">
+    <label for="cui" class="form-label">CUI:</label>
+    <input type="text" 
+           class="form-control" 
+           id="cui" 
+           th:field="*{cui}" 
+           required
+           pattern="([0-9]{1,10}|RO[0-9]{1,10})"
+           title="Introduceți un CUI valid (doar cifre sau format RO urmat de cifre)">
+    <small class="form-text text-muted">Exemplu: 12345678 sau RO12345678</small>
+</div>
+<div class="mb-3">
+    <label for="email" class="form-label">Email:</label>
+    <input type="email" 
+           class="form-control" 
+           id="email" 
+           th:field="*{email}" 
+           required>
+    <small class="form-text text-muted">Introduceți adresa de email a companiei</small>
+</div>
+
+<div class="mb-3">
+    <label for="nrRegCom" class="form-label">Număr Registrul Comerțului:</label>
+    <input type="text" 
+           class="form-control" 
+           id="nrRegCom" 
+           th:field="*{nrRegCom}" 
+           required
+           pattern="J[A-Z]{2}/\d{1,4}/\d{4}"
+           title="Introduceți un număr valid de forma JXX/NNNN/AAAA (ex: JTM/123/2023)">
+    <small class="form-text text-muted">Format: JXX/NNNN/AAAA (ex: JTM/123/2023)</small>
+</div>
+                    
+                    <div class="mb-3">
                         <label for="reprezentant" class="form-label">Reprezentant</label>
                         <input type="text" class="form-control" id="reprezentant" th:field="*{reprezentant}" required>
                     </div>

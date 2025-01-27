@@ -1,9 +1,11 @@
 package ro.upt.ac.conventii.prodecan;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
@@ -20,7 +22,7 @@ public class Prodecan {
     private String facultate;
     private String departament;
     private String telefon;
-
+   
     // Constructor implicit
     public Prodecan() {
     }
@@ -34,6 +36,18 @@ public class Prodecan {
         this.facultate = facultate;
         this.departament = departament;
         this.telefon = telefon;
+    }
+    
+    @Lob
+    @Column(name = "semnatura", columnDefinition="LONGBLOB")
+    private byte[] semnatura;
+    
+    public byte[] getSemnatura() {
+        return semnatura;
+    }
+    
+    public void setSemnatura(byte[] semnatura) {
+        this.semnatura = semnatura;
     }
 
     // Getteri și setteri

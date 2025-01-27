@@ -283,9 +283,13 @@ public class StudentController {
             conventie.setId(id);
             conventie.setStudent(existingConventie.getStudent());
             
-            // Dacă convenția era respinsă, setăm statusul la NETRIMIS după editare
-            if (existingConventie.getStatus() == ConventieStatus.RESPINSA) {
+            // Păstrăm statusul original dacă era NETRIMIS
+            if (existingConventie.getStatus() == ConventieStatus.NETRIMIS) {
                 conventie.setStatus(ConventieStatus.NETRIMIS);
+            } else if (existingConventie.getStatus() == ConventieStatus.RESPINSA) {
+                conventie.setStatus(ConventieStatus.NETRIMIS);
+            } else {
+                conventie.setStatus(existingConventie.getStatus());
             }
             
             conventieRepository.save(conventie);
@@ -322,7 +326,13 @@ public class StudentController {
 
         return new ResponseEntity<>(htmlContent, headers, HttpStatus.OK);
     }
-    
+ // La nivel de clasă în StudentController
+    private String formatDate(java.util.Date date) {
+        if (date == null) {
+            return "N/A";
+        }
+        return new SimpleDateFormat("dd.MM.yyyy").format(date);
+    }
     @GetMapping("/student/conventie-export-pdf/{id}")
     public ResponseEntity<byte[]> exportConventiePdf(@PathVariable("id") int id, Authentication authentication) throws IOException, DocumentException {
         User user = (User) authentication.getPrincipal();
@@ -348,7 +358,7 @@ public class StudentController {
         // Header
         Paragraph header = new Paragraph("ANEXA 3", boldFont);
         header.setAlignment(Element.ALIGN_RIGHT);
-        header.add(new Chunk("\nNr. _____ / " + dateFormat.format(new java.util.Date())));
+        header.add(new Chunk("\nNr. _____ / " + formatDate(new java.util.Date())));
         document.add(header);
         document.add(Chunk.NEWLINE);
 
@@ -383,6 +393,9 @@ public class StudentController {
                 " în calitate de " + conventie.getCompanie().getCalitate() +
                 ", cu sediul în " + conventie.getCompanie().getAdresa() +
                 ", telefon " + conventie.getCompanie().getTelefon() +
+                ", email " + conventie.getCompanie().getEmail() +
+                ", cod de inregistrare fiscală " + conventie.getCompanie().getCui() +
+                ", înregistră la Registrul comertului cu numărul " + conventie.getCompanie().getNrRegCom() +
                 ", denumită în continuare ", font));
         comp.add(new Chunk("partener de practică", boldFont));
         document.add(comp);
@@ -393,7 +406,7 @@ public class StudentController {
         stud.add(new Chunk("3. Student " + conventie.getStudent().getNume() + " " + 
                 conventie.getStudent().getPrenume(), boldFont));
         stud.add(new Chunk(", CNP " + conventie.getStudent().getCnp() +
-                ", data nașterii " + dateFormat.format(conventie.getStudent().getDataNasterii()) +
+                ", data nașterii " + formatDate(conventie.getStudent().getDataNasterii()) +
                 ", locul nașterii " + conventie.getStudent().getLoculNasterii() +
                 ", cetățenie " + conventie.getStudent().getCetatenie() +
                 ", CI seria " + conventie.getStudent().getSerieCi() +
@@ -433,8 +446,8 @@ public class StudentController {
         addParagraph(document, "(1) Durata stagiului de practică, precizată în planul de învățământ, este de " +
                      conventie.getDurataInPlanulDeInvatamant() + " [h].", font);
         addParagraph(document, "(2) Perioada desfășurării stagiului de practică este conformă structurii anului universitar curent " +
-                     "de la " + dateFormat.format(conventie.getDataInceput()) +
-                     " până la " + dateFormat.format(conventie.getDataSfarsit()), font);
+                     "de la " + formatDate(conventie.getDataInceput()) +
+                     " până la " + formatDate(conventie.getDataSfarsit()), font);
 
         // Continuă cu Art. 4-13...
         
@@ -567,7 +580,7 @@ public class StudentController {
    // Art. 13
    addArticleTitle(document, "Art. 13. Prevederi finale", boldFont);
    addParagraph(document, "Prezenta convenție-cadru s-a încheiat în trei exemplare la data: " + 
-                dateFormat.format(conventie.getDataIntocmirii()), font);
+                formatDate(conventie.getDataIntocmirii()), font);
 // La final, adăugăm tabelul de semnături
    document.add(Chunk.NEWLINE);
    PdfPTable table = new PdfPTable(3);
@@ -657,7 +670,7 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         // Header
         html.append("<div class=\"header\">")
             .append("<p><strong>ANEXA 3</strong></p>")
-            .append("Nr. _____ / ").append(dateFormat.format(new java.util.Date()))
+            .append("Nr. _____ / ").append(formatDate(new java.util.Date()))
             .append("</div>");
 
         // Titlu
@@ -679,13 +692,16 @@ private void addParagraph(Document document, String text, Font font) throws Docu
             .append(" în calitate de ").append(conventie.getCompanie().getCalitate())
             .append(", cu sediul în ").append(conventie.getCompanie().getAdresa())
             .append(", telefon ").append(conventie.getCompanie().getTelefon())
+            .append(", email: ").append(conventie.getCompanie().getEmail())  // Adăugăm CUI-ul
+            .append(", cod de înregistrare fiscală: ").append(conventie.getCompanie().getCui())  // Adăugăm CUI-ul
+            .append(", înregistrată la Registrul comertului cu numărul: ").append(conventie.getCompanie().getNrRegCom())  // Adăugăm CUI-ul)
             .append(", denumită în continuare <strong>partener de practică</strong>,</p>");
 
         // Student
         html.append("<p><strong>3. Student ").append(conventie.getStudent().getNume())
             .append(" ").append(conventie.getStudent().getPrenume()).append("</strong>, ")
             .append("CNP ").append(conventie.getStudent().getCnp())
-            .append(", data nașterii ").append(dateFormat.format(conventie.getStudent().getDataNasterii()))
+            .append(", data nașterii ").append(formatDate(conventie.getStudent().getDataNasterii()))
             .append(", locul nașterii ").append(conventie.getStudent().getLoculNasterii())
             .append(", cetățenie ").append(conventie.getStudent().getCetatenie())
             .append(", CI seria ").append(conventie.getStudent().getSerieCi())
@@ -723,8 +739,8 @@ private void addParagraph(Document document, String text, Font font) throws Docu
             .append("<p>(1) Durata stagiului de practică, precizată în planul de învățământ, este de ")
             .append(conventie.getDurataInPlanulDeInvatamant()).append(" [h].</p>")
             .append("<p>(2) Perioada desfășurării stagiului de practică este conformă structurii anului universitar curent ")
-            .append("de la ").append(dateFormat.format(conventie.getDataInceput()))
-            .append(" până la ").append(dateFormat.format(conventie.getDataSfarsit())).append("</p>");
+            .append("de la ").append(formatDate(conventie.getDataInceput()))
+            .append(" până la ").append(formatDate(conventie.getDataSfarsit())).append("</p>");
 
         // Articolul 4
         html.append("<h3>Art. 4. Plata și obligațiile sociale</h3>")
@@ -878,7 +894,7 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         // Articolul 13
         html.append("<h3>Art. 13. Prevederi finale</h3>")
             .append("<p>Această convenție-cadru s-a încheiat în trei exemplare la data: ")
-            .append(dateFormat.format(conventie.getDataIntocmirii())).append("</p>");
+            .append(formatDate(conventie.getDataIntocmirii())).append("</p>");
 
         // Tabel semnături
         html.append("<table class='signature-table'>")
@@ -1010,13 +1026,16 @@ private void addParagraph(Document document, String text, Font font) throws Docu
                      " în calitate de " + conventie.getCompanie().getCalitate() +
                      ", cu sediul în " + conventie.getCompanie().getAdresa() +
                      ", telefon " + conventie.getCompanie().getTelefon() +
+                     ", email " + conventie.getCompanie().getNrRegCom() +
+                     ", cod inregsitrare fiscală: " + conventie.getCompanie().getCui()  + // Adăugăm CUI-ul
+                     " înregistrată la Registrul comertului cu numărul: " + conventie.getCompanie().getNrRegCom() +
                      ", denumită în continuare partener de practică");
 
         // Student
         addParagraph(document, "3. Student " + conventie.getStudent().getNume() + " " + 
                      conventie.getStudent().getPrenume() + ", " +
                      "CNP " + conventie.getStudent().getCnp() +
-                     ", data nașterii " + dateFormat.format(conventie.getStudent().getDataNasterii()) +
+                     ", data nașterii " + formatDate(conventie.getStudent().getDataNasterii()) +
                      ", locul nașterii " + conventie.getStudent().getLoculNasterii() +
                      ", cetățenie " + conventie.getStudent().getCetatenie() +
                      ", CI seria " + conventie.getStudent().getSerieCi() +
@@ -1057,8 +1076,8 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         addParagraph(document, "(1) Durata stagiului de practică, precizată în planul de învățământ, este de " +
                      conventie.getDurataInPlanulDeInvatamant() + " [h].");
         addParagraph(document, "(2) Perioada desfășurării stagiului de practică este conformă structurii anului universitar curent " +
-                     "de la " + dateFormat.format(conventie.getDataInceput()) +
-                     " până la " + dateFormat.format(conventie.getDataSfarsit()));
+                     "de la " + formatDate(conventie.getDataInceput()) +
+                     " până la " + formatDate(conventie.getDataSfarsit()));
 
         // Art. 4-13 ... (continuă cu restul articolelor în același format)
      // Art. 4
@@ -1195,7 +1214,7 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         // Art. 13
         addArticleTitle(document, "Art. 13. Prevederi finale");
         addParagraph(document, "Această convenție-cadru s-a încheiat în trei exemplare la data: " + 
-                     dateFormat.format(conventie.getDataIntocmirii()));
+                     formatDate(conventie.getDataIntocmirii()));
     }
 
     private void addSignatures(XWPFDocument document, Conventie conventie) {

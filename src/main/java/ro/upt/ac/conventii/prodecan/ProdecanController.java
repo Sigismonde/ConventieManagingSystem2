@@ -4,15 +4,19 @@ import java.math.BigInteger;
 import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.lowagie.text.*;
 import com.lowagie.text.Document;
 import com.lowagie.text.pdf.*;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.apache.poi.xwpf.usermodel.XWPFDocument;
 import org.apache.poi.xwpf.usermodel.XWPFParagraph;
@@ -20,6 +24,9 @@ import org.apache.poi.xwpf.usermodel.XWPFRun;
 import org.apache.poi.xwpf.usermodel.XWPFTable;
 import org.apache.poi.xwpf.usermodel.XWPFTableCell;
 import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.apache.xmlbeans.XmlException;
+import org.apache.xmlbeans.XmlToken;
+import org.openxmlformats.schemas.drawingml.x2006.wordprocessingDrawing.CTInline;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +39,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import com.lowagie.text.Chunk;
@@ -53,10 +61,15 @@ import ro.upt.ac.conventii.security.UserRepository;
 import ro.upt.ac.conventii.service.PasswordGeneratorService;
 import ro.upt.ac.conventii.student.Student;
 import ro.upt.ac.conventii.student.StudentRepository;
+import ro.upt.ac.conventii.utils.ValidationUtils;
 import ro.upt.ac.conventii.companie.Companie;
 import ro.upt.ac.conventii.companie.CompanieRepository;
 import ro.upt.ac.conventii.cadruDidactic.CadruDidactic;
 import ro.upt.ac.conventii.cadruDidactic.CadruDidacticRepository;
+
+import org.openxmlformats.schemas.drawingml.x2006.main.CTGraphicalObject;
+import org.openxmlformats.schemas.drawingml.x2006.main.CTGraphicalObjectData;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTDrawing;
 
 @Controller
 @RequestMapping("/prodecan")
@@ -73,6 +86,11 @@ public class ProdecanController {
     
     @Autowired
     private CadruDidacticRepository cadruDidacticRepository;
+    // Adaugă aceste constante la începutul clasei
+    private static final int PICTURE_TYPE_PNG = 6;
+    private static final int DEFAULT_WIDTH = 100;
+    private static final int DEFAULT_HEIGHT = 50;
+
 
     @Autowired
     private ProdecanRepository prodecanRepository;
@@ -107,8 +125,10 @@ public class ProdecanController {
             model.addAttribute("totalCadreDidactice", totalCadreDidactice);
             
             // Preluăm convențiile nesemnate
-            List<Conventie> conventiiNesemnate = conventieRepository.findByStatus(ConventieStatus.IN_ASTEPTARE);
-            model.addAttribute("conventiiNesemnate", conventiiNesemnate != null ? conventiiNesemnate : new ArrayList<>());
+            Pageable lastThree = PageRequest.of(0, 3);
+            List<Conventie> conventiiNesemnate = conventieRepository
+                .findTop3ByStatusOrderByDataIntocmiriiDesc(ConventieStatus.IN_ASTEPTARE, lastThree);
+            model.addAttribute("conventiiNesemnate", conventiiNesemnate);
 
             // Preluăm doar ultimele 5 convenții semnate
             Pageable topFive = PageRequest.of(0, 5);
@@ -204,25 +224,57 @@ public class ProdecanController {
     }
 
     @PostMapping("/student-edit/{id}")
-    public String updateStudent(@PathVariable int id, @ModelAttribute Student student, RedirectAttributes redirectAttributes) {
+    public String updateStudent(@PathVariable int id, @ModelAttribute Student updatedStudent, RedirectAttributes redirectAttributes) {
         try {
-            student.setId(id);
-            studentRepository.save(student);
-            
-            User userStudent = userRepository.findByEmail(student.getEmail());
+            // Căutăm studentul după ID folosind EntityManager pentru a ne asigura că entitatea este atașată sesiunii
+            Student existingStudent = studentRepository.findById(id);
+            if (existingStudent == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Student negăsit!");
+                return "redirect:/prodecan/studenti";
+            }
+
+            // Salvăm email-ul original
+            String originalEmail = existingStudent.getEmail();
+
+            // Copiem toate proprietățile actualizate, exceptând ID-ul și email-ul
+            existingStudent.setNume(updatedStudent.getNume());
+            existingStudent.setPrenume(updatedStudent.getPrenume());
+            existingStudent.setCnp(updatedStudent.getCnp());
+            existingStudent.setDataNasterii(updatedStudent.getDataNasterii());
+            existingStudent.setLoculNasterii(updatedStudent.getLoculNasterii());
+            existingStudent.setCetatenie(updatedStudent.getCetatenie());
+            existingStudent.setSerieCi(updatedStudent.getSerieCi());
+            existingStudent.setNumarCi(updatedStudent.getNumarCi());
+            existingStudent.setAdresa(updatedStudent.getAdresa());
+            existingStudent.setAnUniversitar(updatedStudent.getAnUniversitar());
+            existingStudent.setFacultate(updatedStudent.getFacultate());
+            existingStudent.setSpecializare(updatedStudent.getSpecializare());
+            existingStudent.setAnDeStudiu(updatedStudent.getAnDeStudiu());
+            existingStudent.setTelefon(updatedStudent.getTelefon());
+
+            // Salvăm studentul actualizat
+            studentRepository.save(existingStudent);
+
+            // Actualizăm și utilizatorul asociat
+            User userStudent = userRepository.findByEmail(originalEmail);
             if (userStudent != null) {
-                userStudent.setNume(student.getNume());
-                userStudent.setPrenume(student.getPrenume());
-                userStudent.setFacultate(student.getFacultate());
-                userStudent.setSpecializare(student.getSpecializare());
+                userStudent.setNume(updatedStudent.getNume());
+                userStudent.setPrenume(updatedStudent.getPrenume());
+                userStudent.setFacultate(updatedStudent.getFacultate());
+                userStudent.setSpecializare(updatedStudent.getSpecializare());
                 userRepository.save(userStudent);
             }
+
             redirectAttributes.addFlashAttribute("successMessage", "Student actualizat cu succes!");
+            return "redirect:/prodecan/studenti";
+            
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Eroare la actualizarea studentului: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la actualizarea studentului: " + e.getMessage());
+            return "redirect:/prodecan/student-edit/" + id;
         }
-        return "redirect:/prodecan/studenti";
     }
+    
 
     @PostMapping("/student-reset-password/{id}")
     public String resetStudentPassword(@PathVariable int id, RedirectAttributes redirectAttributes) {
@@ -252,6 +304,43 @@ public class ProdecanController {
         return "redirect:/prodecan/studenti";
     }
 
+    @PostMapping("/upload-semnatura")
+    public String uploadSemnatura(@RequestParam("semnatura") MultipartFile file, 
+                                Authentication authentication,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
+            
+            if (prodecan == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu s-a găsit profilul de prodecan asociat.");
+                return "redirect:/prodecan/dashboard";
+            }
+
+            // Verificăm tipul fișierului
+            if (!file.getContentType().startsWith("image/")) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Vă rugăm să încărcați doar fișiere imagine (.jpg, .png).");
+                return "redirect:/prodecan/dashboard";
+            }
+
+            // Salvăm semnătura
+            prodecan.setSemnatura(file.getBytes());
+            prodecanRepository.save(prodecan);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Semnătura a fost încărcată cu succes!");
+            
+        } catch (IOException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la încărcarea semnăturii: " + e.getMessage());
+        }
+        
+        return "redirect:/prodecan/dashboard";
+    }
+    
+    
     
     @GetMapping("/companii")
     public String companii(Model model) {
@@ -274,12 +363,175 @@ public class ProdecanController {
 
     // Salvare companie nouă
     @PostMapping("/companie-create")
-    public String createCompanie(@ModelAttribute Companie companie) {
-        companieRepository.save(companie);
-        // Modificat redirect către pagina prodecanului
-        return "redirect:/prodecan/companii";
+    public String createCompanie(@ModelAttribute Companie companie, RedirectAttributes redirectAttributes) {
+        try {
+            // Validăm email-ul
+            if (!ValidationUtils.isValidEmail(companie.getEmail())) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Adresa de email nu este validă!");
+                return "redirect:/prodecan/companie-create";
+            }
+            
+            // Validăm numărul de înregistrare
+            if (!ValidationUtils.isValidNrRegCom(companie.getNrRegCom())) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Numărul de înregistrare trebuie să fie în formatul JXX/NNNN/AAAA (ex: JTM/123/2023)!");
+                return "redirect:/prodecan/companie-create";
+            }
+            
+            // Validăm CUI-ul
+            if (!ValidationUtils.isValidCui(companie.getCui())) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "CUI-ul nu este valid!");
+                return "redirect:/prodecan/companie-create";
+            }
+            
+            companieRepository.save(companie);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Companie creată cu succes!");
+            return "redirect:/prodecan/companii";
+            
+        } catch (Exception e) {
+            // Verificăm dacă eroarea este cauzată de cheie duplicată
+            if (e.getMessage().contains("Duplicate entry")) {
+                if (e.getMessage().contains("email")) {
+                    redirectAttributes.addFlashAttribute("errorMessage", 
+                        "Există deja o companie cu această adresă de email!");
+                } else if (e.getMessage().contains("cui")) {
+                    redirectAttributes.addFlashAttribute("errorMessage", 
+                        "Există deja o companie cu acest CUI!");
+                } else if (e.getMessage().contains("nr_reg_com")) {
+                    redirectAttributes.addFlashAttribute("errorMessage", 
+                        "Există deja o companie cu acest număr de înregistrare!");
+                } else {
+                    redirectAttributes.addFlashAttribute("errorMessage", 
+                        "Există deja o înregistrare cu aceste date!");
+                }
+            } else {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Eroare la crearea companiei: " + e.getMessage());
+            }
+            return "redirect:/prodecan/companie-create";
+        }
     }
 
+    
+    @PostMapping("/conventie/aproba/{id}")
+    public String aprobaConventie(@PathVariable int id, Authentication authentication, RedirectAttributes redirectAttributes) {
+        try {
+            // Găsim prodecanul care aprobă
+            User user = (User) authentication.getPrincipal();
+            Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
+            
+            // Verificăm dacă prodecanul are semnătură încărcată
+            if (prodecan == null || prodecan.getSemnatura() == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu puteți aproba convenția fără o semnătură încărcată. Vă rugăm să încărcați mai întâi semnătura în panoul de control.");
+                return "redirect:/prodecan/conventii";
+            }
+
+            // Găsim convenția
+            Conventie conventie = conventieRepository.findById(id);
+            if (conventie != null) {
+                // Setăm statusul și data aprobării
+                conventie.setStatus(ConventieStatus.APROBATA);
+                conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
+                conventieRepository.save(conventie);
+                
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "Convenția a fost aprobată cu succes și semnată digital!");
+            }
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "A apărut o eroare la aprobarea convenției: " + e.getMessage());
+        }
+        
+        return "redirect:/prodecan/conventii";
+    }
+    
+    private void addSignatureTable(Document document, Conventie conventie, Prodecan prodecan, Font font, Font boldFont) throws DocumentException, IOException {
+        // Creăm un tabel cu 3 coloane pentru semnături
+        PdfPTable table = new PdfPTable(3);
+        table.setWidthPercentage(100);  // Tabelul va ocupa toată lățimea disponibilă
+
+        // Configurăm antetul tabelului - numele rolurilor
+        PdfPCell headerCell1 = new PdfPCell(new Paragraph("Universitatea Politehnica Timișoara\nRector", boldFont));
+        PdfPCell headerCell2 = new PdfPCell(new Paragraph("Partener de practică", boldFont));
+        PdfPCell headerCell3 = new PdfPCell(new Paragraph("Student", boldFont));
+
+        // Aliniem textul din antet la centru
+        headerCell1.setHorizontalAlignment(Element.ALIGN_CENTER);
+        headerCell2.setHorizontalAlignment(Element.ALIGN_CENTER);
+        headerCell3.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        // Adăugăm celulele de antet în tabel
+        table.addCell(headerCell1);
+        table.addCell(headerCell2);
+        table.addCell(headerCell3);
+
+        // Creăm celulele pentru semnături
+        PdfPCell signatureCell1 = new PdfPCell();
+        PdfPCell signatureCell2 = new PdfPCell();
+        PdfPCell signatureCell3 = new PdfPCell();
+
+        // Configurăm prima celulă - aici va fi semnătura prodecanului (temporar în locul prorectorului)
+        if (conventie.getStatus() == ConventieStatus.APROBATA && prodecan != null && prodecan.getSemnatura() != null) {
+            // Creăm un paragraf pentru conținutul celulei
+            Paragraph signParagraph = new Paragraph();
+            signParagraph.setAlignment(Element.ALIGN_CENTER);
+            
+            // Adăugăm numele (folosim numele prorectorului temporar)
+            signParagraph.add(new Chunk("Prof. dr. ing. Florin DRĂGAN\n\n", font));
+            
+            // Adăugăm imaginea semnăturii
+            Image signature = Image.getInstance(prodecan.getSemnatura());
+            signature.scaleToFit(150, 70);  // Dimensionăm semnătura la o mărime rezonabilă
+            Chunk signatureChunk = new Chunk(signature, 0, 0, true);
+            signParagraph.add(signatureChunk);
+            
+            // Adăugăm data semnării
+            signParagraph.add(new Chunk("\nData: " + new SimpleDateFormat("dd.MM.yyyy").format(conventie.getDataIntocmirii()), font));
+            
+            signatureCell1.addElement(signParagraph);
+        } else {
+            // Dacă convenția nu e aprobată, punem doar liniile pentru semnătură manuală
+            signatureCell1.addElement(new Paragraph(
+                "Prof. dr. ing. Florin DRĂGAN\n\n" +
+                "Semnătura: ____________\n" +
+                "Data: ____________", font));
+        }
+
+        // Configurăm celelalte celule pentru semnături
+        signatureCell2.addElement(new Paragraph(
+            conventie.getCompanie().getReprezentant() + "\n\n" +
+            "Semnătura: ____________\n" +
+            "Data: ____________", font));
+        
+        signatureCell3.addElement(new Paragraph(
+            conventie.getStudent().getNume() + " " + conventie.getStudent().getPrenume() + "\n\n" +
+            "Semnătura: ____________\n" +
+            "Data: ____________", font));
+
+        // Aliniem tot conținutul la centru
+        signatureCell1.setHorizontalAlignment(Element.ALIGN_CENTER);
+        signatureCell2.setHorizontalAlignment(Element.ALIGN_CENTER);
+        signatureCell3.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        // Setăm înălțimea minimă pentru celule pentru a avea spațiu suficient
+        signatureCell1.setMinimumHeight(100f);
+        signatureCell2.setMinimumHeight(100f);
+        signatureCell3.setMinimumHeight(100f);
+
+        // Adăugăm celulele în tabel
+        table.addCell(signatureCell1);
+        table.addCell(signatureCell2);
+        table.addCell(signatureCell3);
+
+        // Adăugăm tabelul în document
+        document.add(table);
+    }
+    
     // Editare companie - formular
     @GetMapping("/companie-edit/{id}")
     public String showEditCompanieForm(@PathVariable int id, Model model) {
@@ -311,21 +563,7 @@ public class ProdecanController {
         // Modificat redirect către pagina prodecanului
         return "redirect:/prodecan/companii";
     }
-    @PostMapping("/conventie/aproba/{id}")
-    public String aprobaConventie(@PathVariable int id, RedirectAttributes redirectAttributes) {
-        try {
-            Conventie conventie = conventieRepository.findById(id);
-            if (conventie != null) {
-                conventie.setStatus(ConventieStatus.APROBATA);
-                conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
-                conventieRepository.save(conventie);
-                redirectAttributes.addFlashAttribute("successMessage", "Convenția a fost aprobată cu succes!");
-            }
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Eroare la aprobarea convenției: " + e.getMessage());
-        }
-        return "redirect:/prodecan/conventii";
-    }
+  
 
     @PostMapping("/conventie/respinge/{id}")
     public String respingeConventie(@PathVariable int id, RedirectAttributes redirectAttributes) {
@@ -394,6 +632,8 @@ public class ProdecanController {
         return "redirect:/prodecan/cadre-didactice";
     }
     
+  
+    
     @GetMapping("/conventii")
     public String listaConventii(Model model, Authentication authentication) {
         System.out.println("Încercare accesare endpoint conventii"); // logging pentru debug
@@ -455,33 +695,87 @@ public class ProdecanController {
         return "redirect:/prodecan/cadre-didactice";
     }
 
-    // Ștergere cadru didactic
     @GetMapping("/cadru-didactic-delete/{id}")
-    public String deleteCadruDidactic(@PathVariable int id) {
+    public String deleteCadruDidactic(@PathVariable int id, RedirectAttributes redirectAttributes) {
         try {
+            // Verificăm dacă există cadrul didactic
             CadruDidactic cadruDidactic = cadruDidacticRepository.findById(id);
-            if (cadruDidactic != null) {
-                cadruDidacticRepository.delete(cadruDidactic);
+            if (cadruDidactic == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Cadrul didactic nu a fost găsit în baza de date!");
+                return "redirect:/prodecan/cadre-didactice";
             }
+
+            // Verificăm dacă există convenții asociate acestui cadru didactic
+            List<Conventie> conventiiAsociate = conventieRepository.findByCadruDidactic(cadruDidactic);
+            if (!conventiiAsociate.isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu se poate șterge cadrul didactic deoarece există convenții asociate!");
+                return "redirect:/prodecan/cadre-didactice";
+            }
+
+            // Dacă nu există convenții asociate, procedăm cu ștergerea
+            cadruDidacticRepository.delete(cadruDidactic);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Cadrul didactic a fost șters cu succes!");
+
         } catch (Exception e) {
-            System.err.println("Eroare la ștergerea cadrului didactic: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "A apărut o eroare la ștergerea cadrului didactic: " + e.getMessage());
         }
         return "redirect:/prodecan/cadre-didactice";
     }
+    @GetMapping("/student-delete/{id}")
+    public String deleteStudent(@PathVariable int id, RedirectAttributes redirectAttributes) {
+        try {
+            // Verificăm dacă există studentul
+            Student student = studentRepository.findById(id);
+            if (student == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Studentul nu a fost găsit în baza de date!");
+                return "redirect:/prodecan/studenti";
+            }
+
+            // Verificăm dacă există convenții asociate acestui student
+            List<Conventie> conventiiAsociate = conventieRepository.findByStudent(student);
+            if (!conventiiAsociate.isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu se poate șterge studentul deoarece există convenții asociate!");
+                return "redirect:/prodecan/studenti";
+            }
+
+            // Găsim și ștergem și contul de utilizator asociat
+            User userStudent = userRepository.findByEmail(student.getEmail());
+            if (userStudent != null) {
+                userRepository.delete(userStudent);
+            }
+
+            // Ștergem studentul
+            studentRepository.delete(student);
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Studentul a fost șters cu succes!");
+
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "A apărut o eroare la ștergerea studentului: " + e.getMessage());
+        }
+        return "redirect:/prodecan/studenti";
+    }
+    
     
     @GetMapping("/conventie-export-word/{id}")
-    public ResponseEntity<byte[]> exportConventieWord(@PathVariable("id") int id) throws IOException {
+    public ResponseEntity<byte[]> exportConventieWord(@PathVariable("id") int id, Authentication authentication) throws IOException {
         Conventie conventie = conventieRepository.findById(id);
         if (conventie == null) {
             return ResponseEntity.notFound().build();
         }
 
-        XWPFDocument document = generateWordDocument(conventie);
+        XWPFDocument document = generateWordDocument(conventie, authentication);
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         document.write(out);
         document.close();
-        
+
         String filename = String.format("conventie_%s_%s.docx", 
             conventie.getStudent().getNume(),
             conventie.getCompanie().getNume());
@@ -492,9 +786,8 @@ public class ProdecanController {
 
         return new ResponseEntity<>(out.toByteArray(), headers, HttpStatus.OK);
     }
-
     @GetMapping("/conventie-export/{id}")
-    public ResponseEntity<byte[]> exportConventie(@PathVariable("id") int id) {
+    public ResponseEntity<String> exportConventie(@PathVariable("id") int id, Authentication authentication) {
         Conventie conventie = conventieRepository.findById(id);
         if (conventie == null) {
             return ResponseEntity.notFound().build();
@@ -504,7 +797,7 @@ public class ProdecanController {
             conventie.getStudent().getNume(),
             conventie.getCompanie().getNume());
 
-        String htmlContent = generateConventieHtml(conventie);
+        String htmlContent = generateConventieHtml(conventie, authentication);
         
         // Adăugăm BOM și convertim la bytes cu UTF-8
         byte[] bomBytes = new byte[] { (byte)0xEF, (byte)0xBB, (byte)0xBF };
@@ -518,11 +811,11 @@ public class ProdecanController {
         headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename);
         headers.set(HttpHeaders.CONTENT_TYPE, "text/html; charset=UTF-8");
 
-        return new ResponseEntity<>(fullContent, headers, HttpStatus.OK);
+        return new ResponseEntity<>(new String(fullContent, StandardCharsets.UTF_8), headers, HttpStatus.OK);
     }
     
     @GetMapping("/conventie-export-pdf/{id}")
-    public ResponseEntity<byte[]> exportConventiePdf(@PathVariable("id") int id) throws IOException, DocumentException {
+    public ResponseEntity<byte[]> exportConventiePdf(@PathVariable("id") int id, Authentication authentication) throws IOException, DocumentException {
         Conventie conventie = conventieRepository.findById(id);
         if (conventie == null) {
             return ResponseEntity.notFound().build();
@@ -783,7 +1076,36 @@ public class ProdecanController {
    table.addCell(cell3);
 
    // Adăugăm rândurile pentru semnături
-   PdfPCell sign1 = new PdfPCell(new Paragraph("conf. univ. dr. ing. Florin DRĂGAN\n\nSemnătura:________\nData:________", font));
+// Înainte de tabel, obținem prodecanul cu semnătura
+User user = (User) authentication.getPrincipal();
+Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
+
+// Apoi, pentru prima celulă (sign1), verificăm dacă avem semnătură și dacă convenția e aprobată
+PdfPCell sign1 = new PdfPCell();
+sign1.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+if (conventie.getStatus() == ConventieStatus.APROBATA && prodecan != null && prodecan.getSemnatura() != null) {
+    // Creăm un paragraf pentru conținutul celulei
+    Paragraph signParagraph = new Paragraph();
+    signParagraph.setAlignment(Element.ALIGN_CENTER);
+    
+    // Adăugăm numele
+    signParagraph.add(new Chunk("Prof. dr. ing. Florin DRĂGAN\n\n", font));
+    
+    // Adăugăm imaginea semnăturii
+    Image signature = Image.getInstance(prodecan.getSemnatura());
+    signature.scaleToFit(150, 70);  // Ajustăm dimensiunea semnăturii
+    Chunk signatureChunk = new Chunk(signature, 0, 0, true);
+    signParagraph.add(signatureChunk);
+    
+    // Adăugăm data curentă
+    signParagraph.add(new Chunk("\nData: " + dateFormat.format(conventie.getDataIntocmirii()), font));
+    
+    sign1.addElement(signParagraph);
+} else {
+    // Dacă nu avem semnătură sau convenția nu e aprobată, afișăm varianta pentru semnare manuală
+    sign1.addElement(new Paragraph("Prof. dr. ing. Florin DRĂGAN\n\nSemnătura:________\nData:________", font));
+}
    PdfPCell sign2 = new PdfPCell(new Paragraph(conventie.getCompanie().getReprezentant() + 
                                               "\n\nSemnătura:________\nData:________", font));
    PdfPCell sign3 = new PdfPCell(new Paragraph(conventie.getStudent().getNume() + " " + 
@@ -830,7 +1152,7 @@ public class ProdecanController {
         document.add(paragraph);
     }
 
-    private XWPFDocument generateWordDocument(Conventie conventie) throws IOException {
+    private XWPFDocument generateWordDocument(Conventie conventie, Authentication authentication) throws IOException {
         XWPFDocument document = new XWPFDocument();
         
         // Setează marginile documentului (1440 twips = 1 inch)
@@ -845,7 +1167,8 @@ public class ProdecanController {
         addTitle(document);
         addParties(document, conventie);
         addArticles(document, conventie);
-        addSignatures(document, conventie);
+        // Modificăm și apelul către addSignatures pentru a include authentication
+        addSignatures(document, conventie, authentication);
         addAnnex(document, conventie);
 
         return document;
@@ -1080,28 +1403,53 @@ public class ProdecanController {
                      dateFormat.format(conventie.getDataIntocmirii()));
     }
 
-    private void addSignatures(XWPFDocument document, Conventie conventie) {
-        document.createParagraph().createRun().addBreak();
-        
-        XWPFTable table = document.createTable(2, 3);
-        table.setWidth("100%");
-        
-        // Prima linie - titluri
-        XWPFTableRow headerRow = table.getRow(0);
-        setCellText(headerRow.getCell(0), "Universitatea Politehnica Timișoara\nRector");
-        setCellText(headerRow.getCell(1), conventie.getCompanie().getNume());
-        setCellText(headerRow.getCell(2), "Student");
-        
-        // A doua linie - nume și spațiu semnătură
-        XWPFTableRow sigRow = table.getRow(1);
-        setCellText(sigRow.getCell(0), 
-            "conf. univ. dr. ing. Florin DRĂGAN\n\nSemnătura: ____________\nData: ____________");
-        setCellText(sigRow.getCell(1), 
-            conventie.getCompanie().getReprezentant() + "\n\nSemnătura: ____________\nData: ____________");
-        setCellText(sigRow.getCell(2), 
-            conventie.getStudent().getNume() + " " + conventie.getStudent().getPrenume() + 
-            "\n\nSemnătura: ____________\nData: ____________");
-    }
+    
+    private void addSignatures(XWPFDocument document, Conventie conventie, Authentication authentication) {
+    	   User user = (User) authentication.getPrincipal();
+    	   Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
+    	   
+    	   document.createParagraph().createRun().addBreak();
+    	   XWPFTable table = document.createTable(2, 3);
+    	   table.setWidth("100%");
+    	   
+    	   XWPFTableRow headerRow = table.getRow(0);
+    	   setCellText(headerRow.getCell(0), "Universitatea Politehnica Timișoara\nRector");
+    	   setCellText(headerRow.getCell(1), conventie.getCompanie().getNume());
+    	   setCellText(headerRow.getCell(2), "Student");
+    	   
+    	   XWPFTableRow sigRow = table.getRow(1);
+
+    	   if (conventie.getStatus() == ConventieStatus.APROBATA && prodecan != null && prodecan.getSemnatura() != null) {
+    	       XWPFParagraph para = sigRow.getCell(0).getParagraphs().get(0);
+    	       XWPFRun run = para.createRun();
+    	       run.setText("Prof. dr. ing. Florin DRĂGAN\n\n");
+    	       
+    	       try {
+    	           run.addPicture(new ByteArrayInputStream(prodecan.getSemnatura()),
+    	                         XWPFDocument.PICTURE_TYPE_PNG,
+    	                         "semnatura.png",
+    	                         Units.toEMU(100),
+    	                         Units.toEMU(50));
+    	       } catch (Exception e) {
+    	           e.printStackTrace();
+    	       }
+    	       
+    	       run.addBreak();
+    	       run.setText("Data: " + new SimpleDateFormat("dd.MM.yyyy").format(conventie.getDataIntocmirii()));
+    	   } else {
+    	       setCellText(sigRow.getCell(0), 
+    	           "Prof. dr. ing. Florin DRĂGAN\n\nSemnătura: ____________\nData: ____________");
+    	   }
+    	   
+    	   setCellText(sigRow.getCell(1), 
+    	       conventie.getCompanie().getReprezentant() + "\n\nSemnătura: ____________\nData: ____________");
+    	   setCellText(sigRow.getCell(2), 
+    	       conventie.getStudent().getNume() + " " + conventie.getStudent().getPrenume() + 
+    	       "\n\nSemnătura: ____________\nData: ____________");
+    	}
+    
+
+   
 
     private void addAnnex(XWPFDocument document, Conventie conventie) {
         document.createParagraph().createRun().addBreak();
@@ -1135,7 +1483,9 @@ public class ProdecanController {
         run.setText(text);
     }
     
-    private String generateConventieHtml(Conventie conventie) {
+    private String generateConventieHtml(Conventie conventie, Authentication authentication) {
+    	User user = (User) authentication.getPrincipal();
+        Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
         SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n")
@@ -1384,7 +1734,7 @@ public class ProdecanController {
             .append("<p>Această convenție-cadru s-a încheiat în trei exemplare la data: ")
             .append(dateFormat.format(conventie.getDataIntocmirii())).append("</p>");
 
-        // Tabel semnături
+     // În zona unde se generează tabelul de semnături
         html.append("<table class='signature-table'>")
             .append("<tr>")
             .append("<th>Universitatea Politehnica Timișoara<br>Rector</th>")
@@ -1395,28 +1745,32 @@ public class ProdecanController {
             .append(conventie.getStudent().getPrenume()).append("</th>")
             .append("</tr>")
             .append("<tr>")
-            .append("<td>Conf. univ. dr. ing. Florin DRĂGAN<br><br>Semnătura: ____________<br>Data: ____________</td>")
-            .append("<td>Semnătura: ____________<br>Data: ____________</td>")
-            .append("<td>Semnătura: ____________<br>Data: ____________</td>")
-            .append("</tr>")
-            .append("</table>");
+            .append("<td>");
 
-        // Am luat la cunoștință
-        html.append("<p class='mt-4'>Am luat la cunoștință,</p>")
-            .append("<table class='signature-table'>")
-            .append("<tr>")
-            .append("<td><strong>Cadru didactic supervizor</strong><br>")
-            .append(conventie.getCadruDidactic().getNume()).append(" ")
-            .append(conventie.getCadruDidactic().getPrenume()).append("<br>")
-            .append("Funcția: ").append(conventie.getCadruDidactic().getFunctie()).append("<br><br>")
-            .append("Semnătura: ____________<br>")
-            .append("Data: ____________</td>")
-            .append("<td><strong>Tutore</strong><br>")
-            .append(conventie.getTutore().getNume()).append(" ")
-            .append(conventie.getTutore().getPrenume()).append("<br>")
-            .append("Funcția: ").append(conventie.getTutore().getFunctie()).append("<br><br>")
-            .append("Semnătura: ____________<br>")
-            .append("Data: ____________</td>")
+        // Verificăm dacă convenția este aprobată și avem semnătură
+        if (conventie.getStatus() == ConventieStatus.APROBATA && prodecan != null && prodecan.getSemnatura() != null) {
+            // Convertim semnătura în Base64 pentru a o putea afișa în HTML
+            String base64Signature = Base64.getEncoder().encodeToString(prodecan.getSemnatura());
+            
+            html.append("Prof. dr. ing. Florin DRĂGAN<br><br>")
+                .append("<img src='data:image/png;base64,")
+                .append(base64Signature)
+                .append("' style='max-width:150px; max-height:70px;'><br>")
+                .append("Data: ").append(dateFormat.format(conventie.getDataIntocmirii()));
+        } else {
+            html.append("Prof. dr. ing. Florin DRĂGAN<br><br>")
+                .append("Semnătura: ____________<br>")
+                .append("Data: ____________");
+        }
+
+        html.append("</td>")
+            .append("<td>")
+            .append(conventie.getCompanie().getReprezentant())
+            .append("<br><br>Semnătura: ____________<br>Data: ____________</td>")
+            .append("<td>")
+            .append(conventie.getStudent().getNume()).append(" ")
+            .append(conventie.getStudent().getPrenume())
+            .append("<br><br>Semnătura: ____________<br>Data: ____________</td>")
             .append("</tr>")
             .append("</table>");
 

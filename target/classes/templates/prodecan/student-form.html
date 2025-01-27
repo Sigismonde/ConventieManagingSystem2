@@ -24,6 +24,13 @@
                 </h5>
             </div>
             <div class="card-body">
+            
+             <form th:action="@{${student.id != null ? '/prodecan/student-edit/' + student.id : '/prodecan/student-create'}}"
+                      th:object="${student}" 
+                      method="post">
+                    
+                    <!-- Adăugăm un câmp ascuns pentru ID -->
+                    <input type="hidden" th:field="*{id}" />
                 <form action="/prodecan/student-create" method="post" th:object="${student}">
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -36,16 +43,21 @@
                         </div>
                     </div>
 
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="email" class="form-label">Email</label>
-                            <input type="email" class="form-control" id="email" th:field="*{email}" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="telefon" class="form-label">Telefon</label>
-                            <input type="text" class="form-control" id="telefon" th:field="*{telefon}" required>
-                        </div>
-                    </div>
+    <div class="row mb-3">
+    <div class="col-md-6">
+        <label for="email" class="form-label">Email:</label>
+        <input type="email" 
+               class="form-control" 
+               id="email" 
+               th:field="*{email}" 
+               th:readonly="${student.id != null && student.id > 0}"
+               required>
+    </div>
+    <div class="col-md-6">
+        <label for="telefon" class="form-label">Telefon:</label>
+        <input type="text" class="form-control" id="telefon" th:field="*{telefon}" required>
+    </div>
+</div>
 
                     <div class="row mb-3">
                         <div class="col-md-6">

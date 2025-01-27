@@ -11,9 +11,12 @@ import jakarta.persistence.Id;
 @Entity
 public class Student 
 {
-	@Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-	private int id;
+	 @Id
+	    @GeneratedValue(strategy = GenerationType.IDENTITY)
+	    private Integer id;  // Folosim Integer în loc de int pentru a putea fi null
+	    
+	    @Column(unique = true)
+	    private String email;
 
 	private String nume;
 	private String prenume;
@@ -31,7 +34,7 @@ public class Student
 	private Integer anDeStudiu = 1; // Setăm default la 1
 	   
 	@Column(unique = true)
-	private String email;
+	
 	private String telefon;
 	
 
