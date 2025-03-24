@@ -1,4 +1,4 @@
-package ro.upt.ac.conventii.prorector;
+package ro.upt.ac.conventii.rector;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,8 +9,8 @@ import jakarta.persistence.Lob;
 import jakarta.persistence.Table;
 
 @Entity
-@Table(name = "prorector")
-public class Prorector {
+@Table(name = "rector")
+public class Rector {
     
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,37 +19,24 @@ public class Prorector {
     private String nume;
     private String prenume;
     private String email;
-    private String facultate;
-    private String departament;
     private String titluAcademic;
     private String telefon;
-
-    // Constructor implicit
-    public Prorector() {
-    }
-
-    // Constructor cu parametri
-    public Prorector(String nume, String prenume, String email, String facultate, 
-                    String departament, String titluAcademic, String telefon) {
-        this.nume = nume;
-        this.prenume = prenume;
-        this.email = email;
-        this.facultate = facultate;
-        this.departament = departament;
-        this.titluAcademic = titluAcademic;
-        this.telefon = telefon;
-    }
     
     @Lob
     @Column(name = "semnatura", columnDefinition="LONGBLOB")
     private byte[] semnatura;
     
-    public byte[] getSemnatura() {
-        return semnatura;
+    // Constructor implicit
+    public Rector() {
     }
-    
-    public void setSemnatura(byte[] semnatura) {
-        this.semnatura = semnatura;
+
+    // Constructor cu parametri
+    public Rector(String nume, String prenume, String email, String titluAcademic, String telefon) {
+        this.nume = nume;
+        this.prenume = prenume;
+        this.email = email;
+        this.titluAcademic = titluAcademic;
+        this.telefon = telefon;
     }
 
     // Getteri și setteri
@@ -85,22 +72,6 @@ public class Prorector {
         this.email = email;
     }
 
-    public String getFacultate() {
-        return facultate;
-    }
-
-    public void setFacultate(String facultate) {
-        this.facultate = facultate;
-    }
-
-    public String getDepartament() {
-        return departament;
-    }
-
-    public void setDepartament(String departament) {
-        this.departament = departament;
-    }
-
     public String getTitluAcademic() {
         return titluAcademic;
     }
@@ -116,6 +87,14 @@ public class Prorector {
     public void setTelefon(String telefon) {
         this.telefon = telefon;
     }
+    
+    public byte[] getSemnatura() {
+        return semnatura;
+    }
+
+    public void setSemnatura(byte[] semnatura) {
+        this.semnatura = semnatura;
+    }
 
     // Metodă pentru obținerea numelui complet
     public String getNumeComplet() {
@@ -124,13 +103,11 @@ public class Prorector {
 
     @Override
     public String toString() {
-        return "Prorector{" +
+        return "Rector{" +
                 "id=" + id +
                 ", nume='" + nume + '\'' +
                 ", prenume='" + prenume + '\'' +
                 ", email='" + email + '\'' +
-                ", facultate='" + facultate + '\'' +
-                ", departament='" + departament + '\'' +
                 ", titluAcademic='" + titluAcademic + '\'' +
                 ", telefon='" + telefon + '\'' +
                 '}';

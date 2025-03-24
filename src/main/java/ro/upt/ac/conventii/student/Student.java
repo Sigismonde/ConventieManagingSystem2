@@ -7,6 +7,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
 
 @Entity
 public class Student 
@@ -51,6 +52,17 @@ public class Student
     
     public String getNumeComplet() {
         return nume + " " + prenume;
+    }
+    @Lob
+    @Column(name = "semnatura", columnDefinition="LONGBLOB")
+    private byte[] semnatura;
+
+    public byte[] getSemnatura() {
+        return semnatura;
+    }
+
+    public void setSemnatura(byte[] semnatura) {
+        this.semnatura = semnatura;
     }
     
     public void setAnDeStudiu(Integer anDeStudiu) {

@@ -22,6 +22,7 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/change-password", "/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/prodecan/**").hasRole("PRODECAN")
+                .requestMatchers("/rector/**").hasRole("RECTOR")  // Adaugă permisiuni pentru rector
                 .requestMatchers("/student/**", "/student/conventie-noua").hasRole("STUDENT")
                 .anyRequest().authenticated()
             )

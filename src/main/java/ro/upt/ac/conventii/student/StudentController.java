@@ -7,6 +7,8 @@ import java.util.List;
 import com.lowagie.text.*;
 import com.lowagie.text.Document;
 import com.lowagie.text.pdf.*;
+
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 
@@ -25,14 +27,20 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-
+import org.apache.poi.util.Units;
 import org.apache.poi.xwpf.usermodel.*;
 import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTblWidth;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTTcPr;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STTblWidth;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.STVerticalJc;
 import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
 
 import java.io.IOException;
@@ -45,6 +53,8 @@ import ro.upt.ac.conventii.companie.CompanieRepository;
 import ro.upt.ac.conventii.conventie.Conventie;
 import ro.upt.ac.conventii.conventie.ConventieRepository;
 import ro.upt.ac.conventii.conventie.ConventieStatus;
+import ro.upt.ac.conventii.prodecan.Prodecan;
+import ro.upt.ac.conventii.prodecan.ProdecanRepository;
 import ro.upt.ac.conventii.security.User;
 
 @Controller
@@ -61,6 +71,9 @@ public class StudentController {
 
     @Autowired
     private CadruDidacticRepository cadruDidacticRepository;
+    
+    @Autowired
+    private ProdecanRepository prodecanRepository;  // Adăugăm această linie
 
     // Endpoint pentru dashboard
     @GetMapping("/student/dashboard")
@@ -576,46 +589,55 @@ public class StudentController {
    addParagraph(document, conventie.getAvantaje() != null ? conventie.getAvantaje() : "Nu este cazul", font);
    addParagraph(document, "(3) Alte precizări:", font);
    addParagraph(document, conventie.getAltePrecizari() != null ? conventie.getAltePrecizari() : "Nu este cazul", font);
+   
+// Adaugă spațiu alb înainte de Art. 13
+Paragraph whitespace = new Paragraph();
+whitespace.setSpacingBefore(100f); // Ajustează această valoare după necesitate
+document.add(whitespace);
 
-   // Art. 13
-   addArticleTitle(document, "Art. 13. Prevederi finale", boldFont);
-   addParagraph(document, "Prezenta convenție-cadru s-a încheiat în trei exemplare la data: " + 
-                formatDate(conventie.getDataIntocmirii()), font);
-// La final, adăugăm tabelul de semnături
-   document.add(Chunk.NEWLINE);
-   PdfPTable table = new PdfPTable(3);
-   table.setWidthPercentage(100);
 
-   // Adăugăm celulele pentru tabel
-   PdfPCell cell1 = new PdfPCell(new Paragraph("Universitatea Politehnica Timișoara\nRector", boldFont));
-   PdfPCell cell2 = new PdfPCell(new Paragraph("Partener de practică", boldFont));
-   PdfPCell cell3 = new PdfPCell(new Paragraph("Student", boldFont));
 
-   cell1.setHorizontalAlignment(Element.ALIGN_CENTER);
-   cell2.setHorizontalAlignment(Element.ALIGN_CENTER);
-   cell3.setHorizontalAlignment(Element.ALIGN_CENTER);
-
-   table.addCell(cell1);
-   table.addCell(cell2);
-   table.addCell(cell3);
-
-   // Adăugăm rândurile pentru semnături
-   PdfPCell sign1 = new PdfPCell(new Paragraph("conf. univ. dr. ing. Florin DRĂGAN\n\nSemnătura:________\nData:________", font));
-   PdfPCell sign2 = new PdfPCell(new Paragraph(conventie.getCompanie().getReprezentant() + 
-                                              "\n\nSemnătura:________\nData:________", font));
-   PdfPCell sign3 = new PdfPCell(new Paragraph(conventie.getStudent().getNume() + " " + 
-                                              conventie.getStudent().getPrenume() + 
-                                              "\n\nSemnătura:________\nData:________", font));
-
-   sign1.setHorizontalAlignment(Element.ALIGN_CENTER);
-   sign2.setHorizontalAlignment(Element.ALIGN_CENTER);
-   sign3.setHorizontalAlignment(Element.ALIGN_CENTER);
-
-   table.addCell(sign1);
-   table.addCell(sign2);
-   table.addCell(sign3);
-
-   document.add(table);
+//   // Art. 13
+//   addArticleTitle(document, "Art. 13. Prevederi finale", boldFont);
+//   addParagraph(document, "Prezenta convenție-cadru s-a încheiat în trei exemplare la data: " + 
+//                formatDate(conventie.getDataIntocmirii()), font);
+//// La final, adăugăm tabelul de semnături
+//   document.add(Chunk.NEWLINE);
+//   PdfPTable table = new PdfPTable(3);
+//   table.setWidthPercentage(100);
+//
+//   // Adăugăm celulele pentru tabel
+//   PdfPCell cell1 = new PdfPCell(new Paragraph("Universitatea Politehnica Timișoara\nRector", boldFont));
+//   PdfPCell cell2 = new PdfPCell(new Paragraph("Partener de practică", boldFont));
+//   PdfPCell cell3 = new PdfPCell(new Paragraph("Student", boldFont));
+//
+//   cell1.setHorizontalAlignment(Element.ALIGN_CENTER);
+//   cell2.setHorizontalAlignment(Element.ALIGN_CENTER);
+//   cell3.setHorizontalAlignment(Element.ALIGN_CENTER);
+//
+//   table.addCell(cell1);
+//   table.addCell(cell2);
+//   table.addCell(cell3);
+//
+//   // Adăugăm rândurile pentru semnături
+//   PdfPCell sign1 = new PdfPCell(new Paragraph("conf. univ. dr. ing. Florin DRĂGAN\n\nSemnătura:________\nData:________", font));
+//   PdfPCell sign2 = new PdfPCell(new Paragraph(conventie.getCompanie().getReprezentant() + 
+//                                              "\n\nSemnătura:________\nData:________", font));
+//   PdfPCell sign3 = new PdfPCell(new Paragraph(conventie.getStudent().getNume() + " " + 
+//                                              conventie.getStudent().getPrenume() + 
+//                                              "\n\nSemnătura:________\nData:________", font));
+//
+//   sign1.setHorizontalAlignment(Element.ALIGN_CENTER);
+//   sign2.setHorizontalAlignment(Element.ALIGN_CENTER);
+//   sign3.setHorizontalAlignment(Element.ALIGN_CENTER);
+//
+//   table.addCell(sign1);
+//   table.addCell(sign2);
+//   table.addCell(sign3);
+//
+//   document.add(table);
+   addSignatureTable(document, conventie, font, boldFont);
+   
 
    document.close();
 
@@ -945,7 +967,7 @@ private void addParagraph(Document document, String text, Font font) throws Docu
             return ResponseEntity.notFound().build();
         }
 
-        XWPFDocument document = generateWordDocument(conventie);
+        XWPFDocument document = generateWordDocument(conventie, authentication);
         
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         document.write(out);
@@ -962,7 +984,7 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         return new ResponseEntity<>(out.toByteArray(), headers, HttpStatus.OK);
     }
 
-    private XWPFDocument generateWordDocument(Conventie conventie) throws IOException {
+    private XWPFDocument generateWordDocument(Conventie conventie,Authentication authentication) throws IOException {
         XWPFDocument document = new XWPFDocument();
         
         // Setează marginile documentului (1440 twips = 1 inch)
@@ -977,7 +999,7 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         addTitle(document);
         addParties(document, conventie);
         addArticles(document, conventie);
-        addSignatures(document, conventie);
+        addSignaturesTableWord(document, conventie, authentication);
         addAnnex(document, conventie);
 
         return document;
@@ -994,6 +1016,209 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         headerRun.addBreak();
     }
 
+    private void addSignatureTable(Document document, Conventie conventie, Font font, Font boldFont) throws DocumentException {
+        // Primul tabel
+        PdfPTable table = new PdfPTable(4);
+        table.setWidthPercentage(100);
+        float[] columnWidths = new float[]{2.5f, 5f, 5f, 5f};
+        table.setWidths(columnWidths);
+
+        // Header
+        PdfPCell emptyHeader = new PdfPCell(new Paragraph(""));
+        PdfPCell uptHeader = new PdfPCell(new Paragraph("Universitatea Politehnica\nTimișoara,\nprin Rector", boldFont));
+        PdfPCell partenerHeader = new PdfPCell(new Paragraph("Partener de practică,\nprin Reprezentant", boldFont));
+        PdfPCell practicantHeader = new PdfPCell(new Paragraph("Practicant", boldFont));
+
+        uptHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+        partenerHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+        practicantHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(emptyHeader);
+        table.addCell(uptHeader);
+        table.addCell(partenerHeader);
+        table.addCell(practicantHeader);
+
+        // Nume și prenume
+        PdfPCell numeLabel = new PdfPCell(new Paragraph("Nume și prenume", boldFont));
+        numeLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        PdfPCell numeUPT = new PdfPCell(new Paragraph("Conf. univ. dr. ing.\nFlorin DRĂGAN", font));
+        PdfPCell numePartener = new PdfPCell(new Paragraph(conventie.getCompanie().getReprezentant(), font));
+        PdfPCell numePracticant = new PdfPCell(new Paragraph(conventie.getStudent().getNumeComplet(), font));
+
+        numeUPT.setHorizontalAlignment(Element.ALIGN_CENTER);
+        numePartener.setHorizontalAlignment(Element.ALIGN_CENTER);
+        numePracticant.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(numeLabel);
+        table.addCell(numeUPT);
+        table.addCell(numePartener);
+        table.addCell(numePracticant);
+
+        // Data
+        PdfPCell dataLabel = new PdfPCell(new Paragraph("Data", boldFont));
+        dataLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        PdfPCell dataUPT = new PdfPCell(new Paragraph(".....", font));
+        PdfPCell dataPartener = new PdfPCell(new Paragraph(".....", font));
+        PdfPCell dataPracticant = new PdfPCell(new Paragraph(".....", font));
+
+        dataUPT.setHorizontalAlignment(Element.ALIGN_CENTER);
+        dataPartener.setHorizontalAlignment(Element.ALIGN_CENTER);
+        dataPracticant.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(dataLabel);
+        table.addCell(dataUPT);
+        table.addCell(dataPartener);
+        table.addCell(dataPracticant);
+
+        // Semnătura
+        PdfPCell semnLabel = new PdfPCell(new Paragraph("Semnătura", boldFont));
+        semnLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        PdfPCell semnUPT = new PdfPCell(new Paragraph(".....", font));
+        PdfPCell semnPartener = new PdfPCell(new Paragraph(".....", font));
+        PdfPCell semnPracticant = new PdfPCell();
+
+        // Adăugăm semnătura studentului dacă există
+        if (conventie.getStudent().getSemnatura() != null) {
+            try {
+                Image signature = Image.getInstance(conventie.getStudent().getSemnatura());
+                signature.scaleToFit(100, 50);
+                semnPracticant.addElement(signature);
+            } catch (Exception e) {
+                semnPracticant.addElement(new Paragraph(".....", font));
+            }
+        } else {
+            semnPracticant.addElement(new Paragraph(".....", font));
+        }
+
+        semnUPT.setHorizontalAlignment(Element.ALIGN_CENTER);
+        semnPartener.setHorizontalAlignment(Element.ALIGN_CENTER);
+        semnPracticant.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(semnLabel);
+        table.addCell(semnUPT);
+        table.addCell(semnPartener);
+        table.addCell(semnPracticant);
+
+        document.add(table);
+
+     // Am luat la cunoștință
+        Paragraph amLuat = new Paragraph("Am luat la cunoștință,", font);
+        amLuat.setSpacingBefore(20);
+        amLuat.setSpacingAfter(20);
+        document.add(amLuat);
+        
+        document.add(Chunk.NEWLINE);
+        document.add(Chunk.NEWLINE);
+        
+
+     // Al doilea tabel
+        PdfPTable secondTable = new PdfPTable(3);
+        secondTable.setWidthPercentage(100);
+        float[] secondWidths = new float[]{2.5f, 5f, 5f};
+        secondTable.setWidths(secondWidths);
+
+        // Header al doilea tabel
+        PdfPCell emptyHeader2 = new PdfPCell(new Paragraph(""));
+        PdfPCell supervizorHeader = new PdfPCell(new Paragraph("Cadru didactic supervizor", boldFont));
+        PdfPCell tutoreHeader = new PdfPCell(new Paragraph("Tutore", boldFont));
+
+        supervizorHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+        tutoreHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        secondTable.addCell(emptyHeader2);
+        secondTable.addCell(supervizorHeader);
+        secondTable.addCell(tutoreHeader);
+
+        // Rândurile pentru al doilea tabel
+        addSecondTableRow(secondTable, "Nume și prenume", 
+            conventie.getCadruDidactic().getNumeComplet(), 
+            conventie.getTutore().getNume() + " " + conventie.getTutore().getPrenume(), 
+            font, boldFont);
+
+        addSecondTableRow(secondTable, "Funcția", 
+            conventie.getCadruDidactic().getFunctie(), 
+            conventie.getTutore().getFunctie(), 
+            font, boldFont);
+
+        addSecondTableRow(secondTable, "Data", ".....", ".....", font, boldFont);
+        addSecondTableRow(secondTable, "Semnătura", ".....", ".....", font, boldFont);
+
+        document.add(secondTable);
+    }
+
+    private void addSecondTableRow(PdfPTable table, String label, String value1, String value2, Font font, Font boldFont) {
+        // Celula pentru etichetă (prima coloană)
+        PdfPCell labelCell = new PdfPCell(new Paragraph(label, boldFont));
+        labelCell.setHorizontalAlignment(Element.ALIGN_LEFT);  // Aliniere la stânga pentru etichete
+        
+        // Celulele pentru valorile din coloanele 2 și 3
+        PdfPCell cell1 = new PdfPCell(new Paragraph(value1, font));
+        PdfPCell cell2 = new PdfPCell(new Paragraph(value2, font));
+
+        cell1.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell2.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(labelCell);  // Acum etichetele sunt incluse în tabel
+        table.addCell(cell1);
+        table.addCell(cell2);
+    }
+
+    @PostMapping("/student/upload-semnatura")
+    public String uploadSemnatura(@RequestParam("semnatura") MultipartFile file, 
+                                Authentication authentication,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            Student student = studentRepository.findByEmail(user.getEmail())
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+            
+            // Verificăm dacă fișierul este imagine
+            if (!file.getContentType().startsWith("image/")) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Vă rugăm să încărcați doar fișiere imagine (.jpg, .png).");
+                return "redirect:/student/dashboard";
+            }
+
+            // Salvăm semnătura în obiectul Student
+            student.setSemnatura(file.getBytes());
+            
+            // Salvăm în baza de date
+            studentRepository.save(student);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Semnătura a fost încărcată cu succes!");
+            
+        } catch (IOException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la încărcarea semnăturii: " + e.getMessage());
+        }
+        
+        return "redirect:/student/dashboard";
+    }
+    
+    private void addTableRow(PdfPTable table, String label, String value1, String value2, String value3, Font font, Font boldFont) {
+        PdfPCell labelCell = new PdfPCell(new Paragraph(label, boldFont));
+        labelCell.setHorizontalAlignment(Element.ALIGN_LEFT);
+        // Eliminăm NO_BORDER
+
+        PdfPCell cell1 = new PdfPCell(new Paragraph(value1, font));
+        PdfPCell cell2 = new PdfPCell(new Paragraph(value2, font));
+        PdfPCell cell3 = new PdfPCell(new Paragraph(value3, font));
+
+        cell1.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell2.setHorizontalAlignment(Element.ALIGN_CENTER);
+        cell3.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(labelCell);
+        table.addCell(cell1);
+        table.addCell(cell2);
+        table.addCell(cell3);
+    }
+
+    
     private void addTitle(XWPFDocument document) {
         XWPFParagraph titlePara = document.createParagraph();
         titlePara.setAlignment(ParagraphAlignment.CENTER);
@@ -1210,11 +1435,14 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         addParagraph(document, conventie.getAvantaje() != null ? conventie.getAvantaje() : "Nu este cazul");
         addParagraph(document, "(3) Alte precizări:");
         addParagraph(document, conventie.getAltePrecizari() != null ? conventie.getAltePrecizari() : "Nu este cazul");
+        
+        XWPFParagraph spacingParagraph = document.createParagraph();
+        spacingParagraph.setPageBreak(true);
 
         // Art. 13
         addArticleTitle(document, "Art. 13. Prevederi finale");
-        addParagraph(document, "Această convenție-cadru s-a încheiat în trei exemplare la data: " + 
-                     formatDate(conventie.getDataIntocmirii()));
+//        addParagraph(document, "Această convenție-cadru s-a încheiat în trei exemplare la data: " + 
+//                     formatDate(conventie.getDataIntocmirii()));
     }
 
     private void addSignatures(XWPFDocument document, Conventie conventie) {
@@ -1264,11 +1492,171 @@ private void addParagraph(Document document, String text, Font font) throws Docu
         run.setText(text);
         run.addBreak();
     }
+    
+    private void addSignaturesTableWord(XWPFDocument document, Conventie conventie, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        
+        // Adăugăm textul despre întocmire
+        XWPFParagraph datePara = document.createParagraph();
+        XWPFRun dateRun = datePara.createRun();
+        dateRun.setText("Întocmit în trei exemplare la data: " + formatDate(conventie.getDataIntocmirii()) + ".");
+        dateRun.addBreak();
+        dateRun.addBreak();
 
-    private void setCellText(XWPFTableCell cell, String text) {
-        XWPFParagraph para = cell.getParagraphs().get(0);
-        para.setAlignment(ParagraphAlignment.CENTER);
-        XWPFRun run = para.createRun();
-        run.setText(text);
+        // Primul tabel pentru semnături principale
+        XWPFTable mainTable = document.createTable(4, 4);
+        
+        // Prima linie - header cu bold
+        XWPFTableRow headerRow = mainTable.getRow(0);
+        headerRow.getCell(0).setText("");
+        setCellTextBold(headerRow.getCell(1), "Universitatea Politehnica\nTimișoara,\nprin Rector");
+        setCellTextBold(headerRow.getCell(2), "Partener de practică,\nprin Reprezentant");
+        setCellTextBold(headerRow.getCell(3), "Practicant");
+
+     // A doua linie - Nume și prenume
+        XWPFTableRow nameRow = mainTable.getRow(1);
+        setCellTextBold(nameRow.getCell(0), "Nume și prenume");
+        setCellText(nameRow.getCell(1), "Conf. univ. dr. ing.\nFlorin DRĂGAN");
+        setCellText(nameRow.getCell(2), conventie.getCompanie().getReprezentant());
+        setCellText(nameRow.getCell(3), conventie.getStudent().getNumeComplet());
+
+        // A treia linie - Data
+        XWPFTableRow dateRow = mainTable.getRow(2);
+        setCellTextBold(dateRow.getCell(0), "Data");
+        setCellText(dateRow.getCell(1), ".....");
+        setCellText(dateRow.getCell(2), ".....");
+        if (conventie.getStatus() != ConventieStatus.NETRIMIS && conventie.getDataIntocmirii() != null) {
+            setCellText(dateRow.getCell(3), formatDate(conventie.getDataIntocmirii()));
+        } else {
+            setCellText(dateRow.getCell(3), ".....");
+        }
+
+     // A patra linie - Semnatura
+        XWPFTableRow signRow = mainTable.getRow(3);
+        setCellTextBold(signRow.getCell(0), "Semnatura");
+        setCellText(signRow.getCell(1), ".....");
+        setCellText(signRow.getCell(2), ".....");
+
+        // Adaugam semnatura în celula corecta cu spa?iu adecvat
+        XWPFTableCell signatureCell = signRow.getCell(3);
+        signatureCell.setVerticalAlignment(XWPFTableCell.XWPFVertAlign.TOP); // Aliniere sus pentru spa?iere mai buna
+
+        XWPFParagraph signaturePara = signatureCell.getParagraphs().get(0);
+        signaturePara.setAlignment(ParagraphAlignment.CENTER);
+        signaturePara.setSpacingBefore(400); // Adaugam spa?iu înainte de semnatura
+        XWPFRun signatureRun = signaturePara.createRun();
+
+        // Adaugam semnatura studentului daca exista ?i daca conven?ia e trimisa
+        if (conventie.getStatus() != ConventieStatus.NETRIMIS && conventie.getStudent().getSemnatura() != null) {
+            try {
+                signatureRun.addPicture(
+                    new ByteArrayInputStream(conventie.getStudent().getSemnatura()),
+                    XWPFDocument.PICTURE_TYPE_PNG,
+                    "signature.png",
+                    Units.toEMU(100),
+                    Units.toEMU(50)
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+                signatureRun.setText(".....");
+            }
+        } else {
+            signatureRun.setText(".....");
+        }
+
+        // Am luat la cunoștință
+        XWPFParagraph amLuatPara = document.createParagraph();
+        XWPFRun amLuatRun = amLuatPara.createRun();
+        amLuatRun.setText("Am luat la cunoștință,");
+        amLuatRun.addBreak();
+        amLuatRun.addBreak();
+
+        // Al doilea tabel pentru supervizori
+        XWPFTable supervisorsTable = document.createTable(5, 3);
+        supervisorsTable.setWidth("100%");
+
+        // Setăm lățimile coloanelor pentru al doilea tabel
+        CTTblWidth width2 = supervisorsTable.getCTTbl().addNewTblPr().addNewTblW();
+        width2.setType(STTblWidth.PCT);
+        width2.setW(BigInteger.valueOf(5000)); // Valoare mai mică
+
+        // Header
+        XWPFTableRow supervisorsHeader = supervisorsTable.getRow(0);
+        supervisorsHeader.setHeight(800);
+        supervisorsHeader.getCell(0).setText("");
+        setCellTextBold(supervisorsHeader.getCell(1), "Cadru didactic supervizor");
+        setCellTextBold(supervisorsHeader.getCell(2), "Tutore");
+
+        String[][] rows = {
+        	    {"Nume și prenume", 
+        	     conventie.getCadruDidactic().getNumeComplet(), 
+        	     conventie.getTutore().getNume() + " " + conventie.getTutore().getPrenume()},
+        	    {"Funcția", 
+        	     conventie.getCadruDidactic().getFunctie(), 
+        	     conventie.getTutore().getFunctie()},
+        	    {"Data", ".....", "....."},
+        	    {"Semnătura", ".....", "....."}
+        	};
+
+        for (int i = 0; i < rows.length; i++) {
+            XWPFTableRow row = supervisorsTable.getRow(i + 1);
+            row.setHeight(800);
+            setCellTextBold(row.getCell(0), rows[i][0]);
+            setCellText(row.getCell(1), rows[i][1]);
+            setCellText(row.getCell(2), rows[i][2]);
+        }
+
+        // Setăm spațierea și formatarea pentru ambele tabele
+        for (XWPFTable table : new XWPFTable[]{mainTable, supervisorsTable}) {
+            for (XWPFTableRow row : table.getRows()) {
+                for (XWPFTableCell cell : row.getTableCells()) {
+                    cell.getCTTc().addNewTcPr().addNewVAlign().setVal(STVerticalJc.CENTER);
+                    
+                    CTTcPr tcPr = cell.getCTTc().getTcPr();
+                    if (tcPr == null) {
+                        tcPr = cell.getCTTc().addNewTcPr();
+                    }
+                    
+                    CTTblWidth cellWidth = tcPr.addNewTcW();
+                    cellWidth.setType(STTblWidth.DXA);
+                    cellWidth.setW(BigInteger.valueOf(2000)); // Valoare mai mică pentru lățimea celulelor
+                }
+            }
+        }
     }
+    private void setCellText(XWPFTableCell cell, String text) {
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        XWPFRun run = paragraph.createRun();
+        
+        String[] lines = text.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            run.setText(lines[i]);
+            if (i < lines.length - 1) {
+                run.addBreak();
+            }
+        }
+    }
+
+    private void setCellTextBold(XWPFTableCell cell, String text) {
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        XWPFRun run = paragraph.createRun();
+        run.setBold(true);
+        
+        String[] lines = text.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            run.setText(lines[i]);
+            if (i < lines.length - 1) {
+                run.addBreak();
+            }
+        }
+    }
+
+//    private void setCellText(XWPFTableCell cell, String text) {
+//        XWPFParagraph para = cell.getParagraphs().get(0);
+//        para.setAlignment(ParagraphAlignment.CENTER);
+//        XWPFRun run = para.createRun();
+//        run.setText(text);
+//    }
 }
