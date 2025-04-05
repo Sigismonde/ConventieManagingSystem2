@@ -40,6 +40,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -53,12 +54,15 @@ import com.lowagie.text.pdf.BaseFont;
 import com.lowagie.text.pdf.PdfPCell;
 import com.lowagie.text.pdf.PdfPTable;
 
+
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageRequest;
 
 import ro.upt.ac.conventii.conventie.Conventie;
 import ro.upt.ac.conventii.conventie.ConventieRepository;
 import ro.upt.ac.conventii.conventie.ConventieStatus;
+import ro.upt.ac.conventii.partner.Partner;
+import ro.upt.ac.conventii.partner.PartnerRepository;
 import ro.upt.ac.conventii.security.User;
 import ro.upt.ac.conventii.security.UserRepository;
 import ro.upt.ac.conventii.service.PasswordGeneratorService;
@@ -86,6 +90,11 @@ public class ProdecanController {
     
     @Autowired
     private CompanieRepository companieRepository;
+    
+    @Autowired
+    private PartnerRepository partnerRepository; // Adaugă această injectare
+
+
     
     @Autowired
     private CadruDidacticRepository cadruDidacticRepository;
@@ -369,33 +378,99 @@ public class ProdecanController {
     }
 
     // Salvare companie nouă
+    @Transactional
     @PostMapping("/companie-create")
     public String createCompanie(@ModelAttribute Companie companie, RedirectAttributes redirectAttributes) {
         try {
-            // Validăm email-ul
+            // Validările existente
             if (!ValidationUtils.isValidEmail(companie.getEmail())) {
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "Adresa de email nu este validă!");
                 return "redirect:/prodecan/companie-create";
             }
             
-            // Validăm numărul de înregistrare
             if (!ValidationUtils.isValidNrRegCom(companie.getNrRegCom())) {
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "Numărul de înregistrare trebuie să fie în formatul JXX/NNNN/AAAA (ex: JTM/123/2023)!");
                 return "redirect:/prodecan/companie-create";
             }
             
-            // Validăm CUI-ul
             if (!ValidationUtils.isValidCui(companie.getCui())) {
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "CUI-ul nu este valid!");
                 return "redirect:/prodecan/companie-create";
             }
             
+            // Salvăm compania
             companieRepository.save(companie);
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Companie creată cu succes!");
+            System.out.println("Companie salvată, ID=" + companie.getId());
+            if (companie.getId() == 0) {
+                throw new RuntimeException("Compania a fost salvată dar nu are un ID valid!");
+            }
+            
+            // Verificăm dacă avem toate datele pentru a crea un partener
+            if (companie.getReprezentant() != null && !companie.getReprezentant().isEmpty() &&
+                companie.getEmail() != null && !companie.getEmail().isEmpty()) {
+                
+                // Încercăm să extragem numele și prenumele din reprezentant
+                String[] numeParts = companie.getReprezentant().trim().split("\\s+");
+                String nume = numeParts.length > 0 ? numeParts[numeParts.length - 1] : companie.getReprezentant();
+                
+                // Construim prenumele din restul numelui (dacă există)
+                StringBuilder prenumeBuilder = new StringBuilder();
+                for (int i = 0; i < numeParts.length - 1; i++) {
+                    if (i > 0) prenumeBuilder.append(" ");
+                    prenumeBuilder.append(numeParts[i]);
+                }
+                String prenume = prenumeBuilder.toString();
+                if (prenume.isEmpty()) prenume = "Reprezentant";
+                
+                // Creăm partenerul
+                Partner partner = new Partner();
+                partner.setCompanie(companie);
+                partner.setNume(nume);
+                partner.setPrenume(prenume);
+                partner.setFunctie(companie.getCalitate() != null ? companie.getCalitate() : "Reprezentant Legal");
+                partner.setEmail(companie.getEmail());
+                partner.setTelefon(companie.getTelefon());
+                
+                try {
+                    // Salvăm partenerul
+                    partnerRepository.save(partner);
+                    
+                    // Creăm cont de utilizator
+                    String temporaryPassword = "password";
+                    User userPartner = new User();
+                    userPartner.setEmail(partner.getEmail());
+                    userPartner.setNume(partner.getNume());
+                    userPartner.setPrenume(partner.getPrenume());
+                    userPartner.setPassword(passwordEncoder.encode(temporaryPassword));
+                    userPartner.setRole("ROLE_PARTNER");
+                    userPartner.setEnabled(true);
+                    userPartner.setFirstLogin(true);
+                    
+                    userRepository.save(userPartner);
+                    
+                    redirectAttributes.addFlashAttribute("successMessage", 
+                        "Companie creată cu succes! A fost creat automat și un cont de partener pentru reprezentant.\n" +
+                        "----------------------------------------\n" +
+                        "Email: " + partner.getEmail() + "\n" +
+                        "PAROLA TEMPORARĂ: " + temporaryPassword + "\n" +
+                        "----------------------------------------\n" +
+                        "IMPORTANT: Salvați această parolă!");
+                } catch (Exception e) {
+                    System.err.println("EROARE LA SALVAREA PARTENERULUI: " + e.getMessage());
+                    e.printStackTrace(); // Pentru a vedea stack trace-ul complet
+                    redirectAttributes.addFlashAttribute("successMessage", 
+                        "Companie creată cu succes! Nu s-a putut crea contul de partener: " + e.getMessage());
+                }
+            } else {
+                // Compania a fost creată, dar nu avem suficiente date pentru partener
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "Companie creată cu succes! Nu s-a putut crea automat un cont de partener " +
+                    "deoarece lipsesc date esențiale (email sau reprezentant).");
+            }
+                    
             return "redirect:/prodecan/companii";
             
         } catch (Exception e) {
@@ -423,39 +498,49 @@ public class ProdecanController {
     }
 
     
-    @PostMapping("/conventie/aproba/{id}")
-    public String aprobaConventie(@PathVariable int id, Authentication authentication, RedirectAttributes redirectAttributes) {
-        try {
-            // Găsim prodecanul care aprobă
-            User user = (User) authentication.getPrincipal();
-            Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
-            
-            // Verificăm dacă prodecanul are semnătură încărcată
-            if (prodecan == null || prodecan.getSemnatura() == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", 
-                    "Nu puteți aproba convenția fără o semnătură încărcată. Vă rugăm să încărcați mai întâi semnătura în panoul de control.");
-                return "redirect:/prodecan/conventii";
-            }
+ // Fragment pentru actualizarea ProdecanController
+ // Metoda de aprobare a unei convenții ar trebui actualizată astfel:
 
-            // Găsim convenția
-            Conventie conventie = conventieRepository.findById(id);
-            if (conventie != null) {
-                // Setăm statusul și data aprobării
-                conventie.setStatus(ConventieStatus.APROBATA);
-                conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
-                conventieRepository.save(conventie);
-                
-                redirectAttributes.addFlashAttribute("successMessage", 
-                    "Convenția a fost aprobată cu succes și semnată digital!");
-            }
-            
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", 
-                "A apărut o eroare la aprobarea convenției: " + e.getMessage());
-        }
-        
-        return "redirect:/prodecan/conventii";
-    }
+ @PostMapping("/conventie/aproba/{id}")
+ public String aprobaConventie(@PathVariable int id, Authentication authentication, RedirectAttributes redirectAttributes) {
+     try {
+         // Găsim prodecanul care aprobă
+         User user = (User) authentication.getPrincipal();
+         Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
+         
+         // Verificăm dacă prodecanul are semnătură încărcată
+         if (prodecan == null || prodecan.getSemnatura() == null) {
+             redirectAttributes.addFlashAttribute("errorMessage", 
+                 "Nu puteți aproba convenția fără o semnătură încărcată. Vă rugăm să încărcați mai întâi semnătura în panoul de control.");
+             return "redirect:/prodecan/conventii";
+         }
+
+         // Găsim convenția
+         Conventie conventie = conventieRepository.findById(id);
+         if (conventie != null) {
+             // Verificăm dacă convenția este în starea corectă pentru aprobare
+             if (conventie.getStatus() != ConventieStatus.APROBATA_PARTENER) {
+                 redirectAttributes.addFlashAttribute("errorMessage", 
+                     "Convenția trebuie să fie mai întâi aprobată de partenerul de practică!");
+                 return "redirect:/prodecan/conventii";
+             }
+             
+             // Setăm statusul și data aprobării
+             conventie.setStatus(ConventieStatus.APROBATA);
+             conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
+             conventieRepository.save(conventie);
+             
+             redirectAttributes.addFlashAttribute("successMessage", 
+                 "Convenția a fost aprobată cu succes și semnată digital!");
+         }
+         
+     } catch (Exception e) {
+         redirectAttributes.addFlashAttribute("errorMessage", 
+             "A apărut o eroare la aprobarea convenției: " + e.getMessage());
+     }
+     
+     return "redirect:/prodecan/conventii";
+ }
     
     private void addSignatureTable(Document document, Conventie conventie, Font font, Font boldFont, Authentication authentication) throws DocumentException {
     	User user = (User) authentication.getPrincipal();

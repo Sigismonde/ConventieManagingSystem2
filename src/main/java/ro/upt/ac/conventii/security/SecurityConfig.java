@@ -22,8 +22,9 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/login", "/change-password", "/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/prodecan/**").hasRole("PRODECAN")
-                .requestMatchers("/rector/**").hasRole("RECTOR")  // Adaugă permisiuni pentru rector
-                .requestMatchers("/student/**", "/student/conventie-noua").hasRole("STUDENT")
+                .requestMatchers("/prorector/**").hasRole("PRORECTOR")
+                .requestMatchers("/student/**").hasRole("STUDENT")
+                .requestMatchers("/partner/**").hasRole("PARTNER")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
@@ -45,18 +46,8 @@ public class SecurityConfig {
         return new CustomAuthenticationSuccessHandler();
     }
 
-    
-
     @Bean
     public BCryptPasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
-//
-//    @Bean
-//    public DaoAuthenticationProvider authenticationProvider() {
-//        DaoAuthenticationProvider auth = new DaoAuthenticationProvider();
-//        auth.setUserDetailsService(userService);
-//        auth.setPasswordEncoder(passwordEncoder());
-//        return auth;
-//    }
 }

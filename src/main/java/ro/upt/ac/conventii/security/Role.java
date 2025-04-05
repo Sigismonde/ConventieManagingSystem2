@@ -4,5 +4,6 @@ public enum Role {
     STUDENT,
     PRODECAN,
     PRORECTOR,
+    PARTNER,
     ADMIN
 }

@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import ro.upt.ac.conventii.cadruDidactic.CadruDidactic;
+import ro.upt.ac.conventii.companie.Companie;
 import ro.upt.ac.conventii.student.Student;
 import java.util.List;
 
@@ -22,6 +23,12 @@ public interface ConventieRepository extends JpaRepository<Conventie, Integer> {
     List<Conventie> findByStudent(Student student);
     long countByStatus(ConventieStatus status);
     
+    // Metode pentru Partner
+    List<Conventie> findByCompanie(Companie companie);
+    List<Conventie> findByCompanieId(int companieId);
+    List<Conventie> findByCompanieAndStatus(Companie companie, ConventieStatus status);
+    List<Conventie> findTop5ByCompanieAndStatusOrderByDataIntocmiriiDesc(Companie companie, ConventieStatus status, Pageable pageable);
+    
     @Query("SELECT c FROM Conventie c WHERE c.student.email = ?1 ORDER BY c.dataIntocmirii DESC")
     List<Conventie> findTop3ByStudentEmailOrderByDataIntocmiriiDesc(String email, Pageable pageable);
     
@@ -29,5 +36,5 @@ public interface ConventieRepository extends JpaRepository<Conventie, Integer> {
     List<Conventie> findTop5ByStatusOrderByDataIntocmiriiDesc(ConventieStatus status, Pageable pageable);
     
     @Query("SELECT c FROM Conventie c WHERE c.status = ?1 ORDER BY c.dataIntocmirii DESC")
-	List<Conventie> findTop3ByStatusOrderByDataIntocmiriiDesc(ConventieStatus inAsteptare, Pageable lastThree);
+    List<Conventie> findTop3ByStatusOrderByDataIntocmiriiDesc(ConventieStatus inAsteptare, Pageable lastThree);
 }

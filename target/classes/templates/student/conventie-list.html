@@ -100,13 +100,17 @@
                                 </td>
                                 <td th:text="${conventie.numeProiect}">Nume Proiect</td>
                                 <td>
-                                   <span th:with="statusClass=${
+                                  <!-- Fragment pentru actualizarea template-ului conventie-list.html pentru student -->
+<!-- Actualizare la afișarea statusului în tabelul de convenții -->
+
+<span th:with="statusClass=${
   conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE ? 'bg-warning' : 
+  conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_PARTENER ? 'bg-info' : 
   conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA ? 'bg-success' : 
   conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA ? 'bg-danger' : 
-  'bg-info'}"
+  'bg-primary'}"
       th:class="|badge ${statusClass}|"
-      th:text="${conventie.status}">
+      th:text="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_PARTENER ? 'APROBATĂ DE PARTENER' : conventie.status}">
       Status
 </span>
                                 </td>

@@ -31,6 +31,9 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
                 case "ROLE_PRORECTOR":
                     response.sendRedirect("/prorector/dashboard");
                     break;
+                case "ROLE_PARTNER":
+                    response.sendRedirect("/partner/dashboard");
+                    break;
                 default:
                     response.sendRedirect("/");
                     break;

@@ -21,8 +21,10 @@ public class HomeController {
                     return "redirect:/prodecan/dashboard";
                 case "ROLE_STUDENT":
                     return "redirect:/student/dashboard";
-                case "ROLE_PRORECTOR":    // Adăugăm cazul pentru prorector
+                case "ROLE_PRORECTOR":
                     return "redirect:/prorector/dashboard";
+                case "ROLE_PARTNER":
+                    return "redirect:/partner/dashboard";
                 default:
                     return "redirect:/login";
             }

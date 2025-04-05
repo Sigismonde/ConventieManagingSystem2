@@ -223,40 +223,42 @@ public class StudentController {
         return "redirect:/student/conventii";
     }
 
-    @PostMapping("/student/conventie-trimite/{id}")
-    public String trimiteConventie(@PathVariable("id") int id, Authentication authentication, RedirectAttributes redirectAttributes) {
-        try {
-            User user = (User) authentication.getPrincipal();
-            Conventie conventie = conventieRepository.findById(id);
-            
-            if (conventie == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", "Convenția nu a fost găsită!");
-                return "redirect:/student/conventii";
-            }
+ // Fragment pentru actualizarea StudentController
+ // Metoda de trimitere a unei convenții ar trebui actualizată astfel:
 
-            if (!conventie.getStudent().getEmail().equals(user.getEmail())) {
-                redirectAttributes.addFlashAttribute("errorMessage", "Nu aveți permisiunea să trimiteți această convenție!");
-                return "redirect:/student/conventii";
-            }
+ @PostMapping("/student/conventie-trimite/{id}")
+ public String trimiteConventie(@PathVariable("id") int id, Authentication authentication, RedirectAttributes redirectAttributes) {
+     try {
+         User user = (User) authentication.getPrincipal();
+         Conventie conventie = conventieRepository.findById(id);
+         
+         if (conventie == null) {
+             redirectAttributes.addFlashAttribute("errorMessage", "Convenția nu a fost găsită!");
+             return "redirect:/student/conventii";
+         }
 
-            if (conventie.getStatus() != ConventieStatus.NETRIMIS) {
-                redirectAttributes.addFlashAttribute("errorMessage", "Convenția nu poate fi trimisă în starea curentă!");
-                return "redirect:/student/conventii";
-            }
+         if (!conventie.getStudent().getEmail().equals(user.getEmail())) {
+             redirectAttributes.addFlashAttribute("errorMessage", "Nu aveți permisiunea să trimiteți această convenție!");
+             return "redirect:/student/conventii";
+         }
 
-            // Actualizăm statusul și data
-            conventie.setStatus(ConventieStatus.IN_ASTEPTARE);
-            conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
-            conventieRepository.save(conventie);
-            
-            redirectAttributes.addFlashAttribute("successMessage", "Convenția a fost trimisă cu succes!");
-            
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", "Eroare la trimiterea convenției: " + e.getMessage());
-        }
-        return "redirect:/student/conventii";
-    }
-    
+         if (conventie.getStatus() != ConventieStatus.NETRIMIS && conventie.getStatus() != ConventieStatus.RESPINSA) {
+             redirectAttributes.addFlashAttribute("errorMessage", "Convenția nu poate fi trimisă în starea curentă!");
+             return "redirect:/student/conventii";
+         }
+
+         // Actualizăm statusul și data
+         conventie.setStatus(ConventieStatus.IN_ASTEPTARE);
+         conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
+         conventieRepository.save(conventie);
+         
+         redirectAttributes.addFlashAttribute("successMessage", "Convenția a fost trimisă cu succes către partenerul de practică pentru aprobare!");
+         
+     } catch (Exception e) {
+         redirectAttributes.addFlashAttribute("errorMessage", "Eroare la trimiterea convenției: " + e.getMessage());
+     }
+     return "redirect:/student/conventii";
+ }
 
     @GetMapping("/student/conventie-edit/{id}")
     public String editConventie(@PathVariable("id") int id, 
