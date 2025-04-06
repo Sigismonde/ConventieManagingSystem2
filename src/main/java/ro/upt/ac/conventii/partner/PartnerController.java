@@ -1,12 +1,24 @@
 package ro.upt.ac.conventii.partner;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.poi.util.Units;
+import org.apache.poi.xwpf.usermodel.ParagraphAlignment;
+import org.apache.poi.xwpf.usermodel.XWPFDocument;
+import org.apache.poi.xwpf.usermodel.XWPFParagraph;
+import org.apache.poi.xwpf.usermodel.XWPFRun;
+import org.apache.poi.xwpf.usermodel.XWPFTable;
+import org.apache.poi.xwpf.usermodel.XWPFTableCell;
+import org.apache.poi.xwpf.usermodel.XWPFTableRow;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTPageMar;
+import org.openxmlformats.schemas.wordprocessingml.x2006.main.CTSectPr;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,9 +37,33 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import com.lowagie.text.Chunk;
 import com.lowagie.text.Document;
 import com.lowagie.text.DocumentException;
+import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfWriter;
+//Biblioteca iText principală
+import com.lowagie.text.Document;
+import com.lowagie.text.DocumentException;
+import com.lowagie.text.Element;
+import com.lowagie.text.Font;
+import com.lowagie.text.PageSize;
+import com.lowagie.text.Paragraph;
+import com.lowagie.text.Phrase;
+import com.lowagie.text.Chunk;
+import com.lowagie.text.pdf.BaseFont;
+import com.lowagie.text.pdf.PdfPCell;
+import com.lowagie.text.pdf.PdfPTable;
+import com.lowagie.text.pdf.PdfWriter;
+import com.lowagie.text.Image;
+
+//Pentru gestionarea fluxurilor de date
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+
+//Pentru formatarea datelor
+import java.text.SimpleDateFormat;
+//import java.util.Date;
 
 import jakarta.servlet.http.HttpServletResponse;
 import ro.upt.ac.conventii.companie.Companie;
@@ -35,6 +71,7 @@ import ro.upt.ac.conventii.companie.CompanieRepository;
 import ro.upt.ac.conventii.conventie.Conventie;
 import ro.upt.ac.conventii.conventie.ConventieRepository;
 import ro.upt.ac.conventii.conventie.ConventieStatus;
+import ro.upt.ac.conventii.prodecan.Prodecan;
 import ro.upt.ac.conventii.security.User;
 import ro.upt.ac.conventii.security.UserRepository;
 
@@ -103,6 +140,7 @@ public class PartnerController {
     }
     
     // Approve convention
+  
     @PostMapping("/conventie/aproba/{id}")
     public String aprobaConventie(@PathVariable("id") int id, 
                                  Authentication authentication, 
@@ -111,6 +149,13 @@ public class PartnerController {
             User user = (User) authentication.getPrincipal();
             Partner partner = partnerRepository.findByEmail(user.getEmail())
                     .orElseThrow(() -> new RuntimeException("Partner not found"));
+            
+            // Verificăm dacă partenerul are semnătură încărcată
+            if (partner.getSemnatura() == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu puteți aproba convenția fără o semnătură încărcată. Vă rugăm să încărcați mai întâi semnătura în panoul de control.");
+                return "redirect:/partner/conventii";
+            }
             
             Conventie conventie = conventieRepository.findById(id);
             
@@ -132,7 +177,7 @@ public class PartnerController {
             conventieRepository.save(conventie);
             
             redirectAttributes.addFlashAttribute("successMessage", 
-                "Convenția a fost aprobată cu succes!");
+                "Convenția a fost aprobată cu succes și semnată digital!");
                 
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", 
@@ -204,9 +249,8 @@ public class PartnerController {
         return "partner/conventie-view";
     }
     
-    // Export PDF
     @GetMapping("/conventie-export-pdf/{id}")
-    public ResponseEntity<byte[]> exportConventiePdf(@PathVariable("id") int id, Authentication authentication) {
+    public ResponseEntity<byte[]> exportConventiePdf(@PathVariable("id") int id, Authentication authentication) throws IOException, DocumentException {
         User user = (User) authentication.getPrincipal();
         Partner partner = partnerRepository.findByEmail(user.getEmail())
                 .orElseThrow(() -> new RuntimeException("Partner not found"));
@@ -216,55 +260,887 @@ public class PartnerController {
         if (conventie == null || conventie.getCompanie().getId() != partner.getCompanie().getId()) {
             return ResponseEntity.notFound().build();
         }
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        Document document = new Document(PageSize.A4, 50, 50, 50, 50);
+        PdfWriter writer = PdfWriter.getInstance(document, out);
+        document.open();
+
+        // Font pentru diacritice
+        BaseFont baseFont = BaseFont.createFont("c:/windows/fonts/arial.ttf", BaseFont.IDENTITY_H, BaseFont.EMBEDDED);
+        Font font = new Font(baseFont, 11);
+        Font boldFont = new Font(baseFont, 11, Font.BOLD);
+        Font titleFont = new Font(baseFont, 14, Font.BOLD);
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+
+        // Header
+        Paragraph header = new Paragraph("ANEXA 3", boldFont);
+        header.setAlignment(Element.ALIGN_RIGHT);
+        header.add(new Chunk("\nNr. _____ / " + dateFormat.format(new java.util.Date())));
+        document.add(header);
+        document.add(Chunk.NEWLINE);
+
+        // Titlu
+        Paragraph title = new Paragraph("CONVENȚIE-CADRU", titleFont);
+        title.setAlignment(Element.ALIGN_CENTER);
+        document.add(title);
         
-        try {
-            // Use the export functionality you already have
-            // Stub for PDF generation - you'll implement this
-            
-            String filename = String.format("conventie_%s_%s.pdf", 
-                conventie.getStudent().getNume(),
-                conventie.getCompanie().getNume());
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_PDF);
-            headers.setContentDispositionFormData("attachment", filename);
-            
-            return new ResponseEntity<>(new byte[0], headers, HttpStatus.OK);
-            
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        Paragraph subtitle = new Paragraph("privind efectuarea stagiului de practică în cadrul\nprogramelor de studii universitare de licență sau masterat", titleFont);
+        subtitle.setAlignment(Element.ALIGN_CENTER);
+        document.add(subtitle);
+        document.add(Chunk.NEWLINE);
+
+        // Părți contractante
+        document.add(new Paragraph("Prezenta convenție-cadru se încheie între:", font));
+        document.add(Chunk.NEWLINE);
+
+        // UPT
+        Paragraph upt = new Paragraph();
+        upt.add(new Chunk("1. Universitatea Politehnica Timișoara", boldFont));
+        upt.add(new Chunk(", reprezentată de Rector, conf. univ. dr. ing. Florin DRĂGAN, cu sediul în TIMIȘOARA, " +
+                "Piața Victoriei, Nr. 2, cod 300006, telefon: 0256-403011, email: rector@upt.ro, " +
+                "cod unic de înregistrare: 4269282, denumită în continuare ", font));
+        upt.add(new Chunk("organizator de practică", boldFont));
+        document.add(upt);
+        document.add(Chunk.NEWLINE);
+
+        // Companie
+        Paragraph comp = new Paragraph();
+        comp.add(new Chunk("2. " + conventie.getCompanie().getNume(), boldFont));
+        comp.add(new Chunk(", reprezentată de " + conventie.getCompanie().getReprezentant() +
+                " în calitate de " + conventie.getCompanie().getCalitate() +
+                ", cu sediul în " + conventie.getCompanie().getAdresa() +
+                ", telefon " + conventie.getCompanie().getTelefon() +
+                ", denumită în continuare ", font));
+        comp.add(new Chunk("partener de practică", boldFont));
+        document.add(comp);
+        document.add(Chunk.NEWLINE);
+
+        // Student
+        Paragraph stud = new Paragraph();
+        stud.add(new Chunk("3. Student " + conventie.getStudent().getNume() + " " + 
+                conventie.getStudent().getPrenume(), boldFont));
+        stud.add(new Chunk(", CNP " + conventie.getStudent().getCnp() +
+                ", data nașterii " + dateFormat.format(conventie.getStudent().getDataNasterii()) +
+                ", locul nașterii " + conventie.getStudent().getLoculNasterii() +
+                ", cetățenie " + conventie.getStudent().getCetatenie() +
+                ", CI seria " + conventie.getStudent().getSerieCi() +
+                " nr. " + conventie.getStudent().getNumarCi() +
+                ", adresa " + conventie.getStudent().getAdresa() +
+                ", înscris în anul universitar " + conventie.getStudent().getAnUniversitar() +
+                ", facultatea " + conventie.getStudent().getFacultate() +
+                ", specializarea " + conventie.getStudent().getSpecializare() +
+                ", anul de studiu " + conventie.getStudent().getAnDeStudiu() +
+                ", email " + conventie.getStudent().getEmail() +
+                ", telefon " + conventie.getStudent().getTelefon() +
+                ", denumit în continuare ", font));
+        stud.add(new Chunk("practicant", boldFont));
+        document.add(stud);
+        document.add(Chunk.NEWLINE);
+
+        // Adăugă restul articolelor - similar cu codul din ProdecanController sau StudentController
+        addArticleTitle(document, "Art. 1. Obiectul convenției-cadru", boldFont);
+        addParagraph(document, "(1) Convenția-cadru stabilește modul în care se organizează și se " +
+                    "desfășoară stagiul de practică în vederea consolidării cunoștințelor teoretice și " +
+                    "formarea abilităților practice, spre a le aplica în concordanță cu specializarea pentru " +
+                    "care se instruiește studentul practicant.", font);
+        addParagraph(document, "(2) Stagiul de practică este realizat de practicant în vederea dobândirii " +
+                    "competențelor profesionale menționate în Portofoliul de practică care este corelat cu fișa disciplinei de practică, " +
+                    "parte integrantă a prezentei convenții. " +
+                    "Locul desfășurării stagiului de practică este: " + conventie.getLoculDesfasurarii(), font);
+        // Adaugă restul articolelor în mod similar
+     // Art. 4
+        addArticleTitle(document, "Art. 4. Plata și obligațiile sociale", boldFont);
+        addParagraph(document, "(1) Stagiul de pregătire practică (se bifează situația corespunzătoare):", font);
+        addParagraph(document, "☐ - se efectuează în cadrul unui contract de muncă, cei doi parteneri putând să beneficieze " +
+                     "de prevederile Legii nr. 72/2007 privind stimularea încadrării în muncă a elevilor și studenților;", font);
+        addParagraph(document, "☐ - nu se efectuează în cadrul unui contract de muncă;", font);
+        addParagraph(document, "☐ - se efectuează în cadrul unui proiect finanțat prin Fondul Social European;", font);
+        addParagraph(document, "☐ - se efectuează în cadrul proiectului ...", font);
+        addParagraph(document, "(2) În cazul angajării ulterioare, perioada stagiului nu va fi considerată ca vechime " +
+                "în muncă în situația în care convenția nu se derulează în cadrul unui contract de muncă.", font);
+   addParagraph(document, "(3) Practicantul nu poate pretinde un salariu din partea partenerului de practică, cu " +
+                "excepția situației în care practicantul are statut de angajat.", font);
+   addParagraph(document, "(4) Partenerul de practică poate totuși acorda practicantului o indemnizație, " +
+                "gratificare, primă sau avantaje în natură, conform legislației în vigoare.", font);
+
+   // Art. 5
+   addArticleTitle(document, "Art. 5. Responsabilitățile practicantului", boldFont);
+   addParagraph(document, "(1) Practicantul are obligația, ca pe durata derulării stagiului de practică, să " +
+                "respecte programul de lucru stabilit și să execute activitățile specificate de tutore " +
+                "în conformitate cu portofoliul de practică, în condițiile respectării cadrului legal cu " +
+                "privire la volumul și dificultatea acestora.", font);
+   addParagraph(document, "(2) Pe durata stagiului, practicantul respectă regulamentul de ordine interioară al " +
+                "partenerului de practică. În cazul nerespectării acestui regulament, conducătorul " +
+                "partenerului de practică își rezervă dreptul de a anula convenția-cadru, după ce în " +
+                "prealabil a ascultat punctul de vedere al practicantului și al îndrumătorului de " +
+                "practică și a înștiințat conducătorul facultății unde practicantul este înmatriculat " +
+                "și după primirea confirmării de primire a acestei informații.", font);
+   addParagraph(document, "(3) Practicantul are obligația de a respecta normele de securitate și sănătate în " +
+                "muncă pe care le-a însușit de la reprezentantul partenerului de practică înainte de " +
+                "începerea stagiului de practică.", font);
+   addParagraph(document, "(4) Practicantul se angajează să nu folosească, în niciun caz, informațiile la care " +
+                "are acces în timpul stagiului despre partenerul de practică sau clienții săi, pentru a " +
+                "le comunica unui terț sau pentru a le publica, chiar după terminarea stagiului, decât " +
+                "cu acordul respectivului partener de practică.", font);
+
+   // Art. 6
+   addArticleTitle(document, "Art. 6. Responsabilitățile partenerului de practică", boldFont);
+   addParagraph(document, "(1) Partenerul de practică va stabili un tutore pentru stagiul de practică, " +
+                "selectat dintre salariații proprii și ale cărui obligații sunt menționate în portofoliul " +
+                "de practică, parte integrantă a convenției-cadru.", font);
+   addParagraph(document, "(2) În cazul nerespectării obligațiilor de către practicant, tutorele va contacta " +
+                "cadrul didactic supervizor, responsabil de practică, aplicându-se sancțiuni conform " +
+                "legilor și regulamentelor în vigoare.", font);
+   addParagraph(document, "(3) Înainte de începerea stagiului de practică, partenerul are obligația de a face " +
+                "practicantului instructajul cu privire la normele de securitate și sănătate în muncă, " +
+                "în conformitate cu legislația în vigoare. Printre responsabilitățile sale, partenerul de practică " +
+                "va lua măsurile necesare pentru securitatea și sănătatea în muncă a practicantului, precum " +
+                "și pentru comunicarea regulilor de prevenire a riscurilor profesionale.", font);
+   addParagraph(document, "(4) Partenerul de practică trebuie să pună la dispoziția practicantului toate " +
+                "mijloacele necesare pentru dobândirea competențelor precizate în portofoliul de practică.", font);
+   addParagraph(document, "(5) Partenerul de practică are obligația de a asigura practicantului accesul liber la " +
+                "serviciul de medicina muncii, pe durata derulării pregătirii practice.", font);
+
+   // Art. 7
+   addArticleTitle(document, "Art. 7. Obligațiile organizatorului de practică", boldFont);
+   addParagraph(document, "(1) Organizatorul de practică desemnează un cadru didactic supervizor, responsabil " +
+                "cu planificarea, organizarea și supravegherea desfășurării pregătirii practice. " +
+                "Cadrul didactic supervizor, împreună cu tutorele desemnat de partenerul de practică " +
+                "stabilesc tematica de practică și competențele profesionale care fac obiectul stagiului " +
+                "de pregătire practică.", font);
+   addParagraph(document, "(2) În cazul în care derularea stagiului de pregătire practică nu este conformă cu " +
+                "angajamentele luate de către partenerul de practică în cadrul prezentei convenții, " +
+                "conducătorul organizatorului de practică poate decide întreruperea stagiului de pregătire " +
+                "practică conform convenției-cadru, după informarea prealabilă a conducătorului partenerului " +
+                "de practică și după primirea confirmării de primire a acestei informații.", font);
+
+   // Art. 8
+   addArticleTitle(document, "Art. 8. Persoane desemnate de organizatorul de practică și partenerul de practică", boldFont);
+   addParagraph(document, "(1) Tutorele (persoana care va avea responsabilitatea practicantului din partea partenerului de practică):", font);
+   addParagraph(document, "Dl/Dna " + conventie.getTutore().getNume() + " " + conventie.getTutore().getPrenume() +
+                "\nFuncția: " + conventie.getTutore().getFunctie() +
+                "\nTelefon: " + conventie.getTutore().getTelefon() +
+                "\nEmail: " + conventie.getTutore().getEmail(), font);
+   addParagraph(document, "(2) Cadrul didactic supervizor, responsabil cu urmărirea derulării stagiului de practică din partea organizatorului de practică:", font);
+   addParagraph(document, "Dl/Dna " + conventie.getCadruDidactic().getNume() + " " + conventie.getCadruDidactic().getPrenume() +
+                "\nFuncția: " + conventie.getCadruDidactic().getFunctie() +
+                "\nTelefon: " + conventie.getCadruDidactic().getTelefon() +
+                "\nEmail: " + conventie.getCadruDidactic().getEmail(), font);
+
+   // Art. 9
+   addArticleTitle(document, "Art. 9. Evaluarea stagiului de pregătire practică prin credite transferabile", boldFont);
+   addParagraph(document, "Numărul de credite transferabile ce vor fi obținute în urma desfășurării stagiului " +
+                "de practică este de " + conventie.getNumarCredite() + ".", font);
+
+   // Art. 10
+   addArticleTitle(document, "Art. 10. Raportul privind stagiul de pregătire practică", boldFont);
+   addParagraph(document, "(1) În timpul derulării stagiului de practică, tutorele împreună cu cadrul " +
+                "didactic supervizor vor evalua practicantul în permanență, pe baza unei fișe de " +
+                "observație/evaluare. Vor fi evaluate atât nivelul de dobândire a competențelor " +
+                "profesionale, cât și comportamentul și modalitatea de integrare a practicantului în " +
+                "activitatea partenerului de practică (disciplină, punctualitate, responsabilitate în " +
+                "rezolvarea sarcinilor, respectarea regulamentului de ordine interioară al partenerului de practică etc.).", font);
+   addParagraph(document, "(2) La finalul stagiului de practică, tutorele elaborează un raport, pe baza " +
+                "evaluării nivelului de dobândire a competențelor de către practicant. Rezultatul " +
+                "acestei evaluări va sta la baza notării practicantului de către cadrul didactic " +
+                "supervizor.", font);
+   addParagraph(document, "(3) Periodic și după încheierea stagiului de practică, practicantul va prezenta un caiet de practică care va cuprinde:", font);
+   addParagraph(document, "• denumirea modulului de pregătire;\n" +
+                "• competențe exersate;\n" +
+                "• activități desfășurate pe perioada stagiului de practică;\n" +
+                "• observații personale privitoare la activitatea depusă.", font);
+
+   // Art. 11
+   addArticleTitle(document, "Art. 11. Sănătatea și securitatea în muncă. Protecția socială a practicantului", boldFont);
+   addParagraph(document, "(1) Practicantul anexează prezentului contract dovada asigurării medicale valabile " +
+                "în perioada și pe teritoriul statului unde se desfășoară stagiul de practică.", font);
+   addParagraph(document, "(2) Partenerul de practică are obligația respectării prevederilor legale cu privire " +
+                "la sănătatea și securitatea în muncă a practicantului pe durata stagiului de practică.", font);
+   addParagraph(document, "(3) Practicantului i se asigură protecție socială conform legislației în vigoare. Ca " +
+                "urmare, conform dispozițiilor Legii nr. 346/2002 privind asigurările pentru accidente de " +
+                "muncă și boli profesionale, cu modificările și completările ulterioare, practicantul " +
+                "beneficiază de legislația privitoare la accidentele de muncă pe toata durata efectuării " +
+                "pregătirii practice.", font);
+   addParagraph(document, "(4) În cazul unui accident suportat de practicant, fie în cursul lucrului, fie în " +
+                "timpul deplasării la lucru, partenerul de practică se angajează să înștiințeze " +
+                "asiguratorul cu privire la accidentul care a avut loc.", font);
+
+   // Art. 12
+   addArticleTitle(document, "Art. 12. Condiții facultative de desfășurare a stagiului de pregătire practică", boldFont);
+   addParagraph(document, "(1) Îndemnizație, gratificări sau prime acordate practicantului:", font);
+   addParagraph(document, conventie.getIndemnizatii() != null ? conventie.getIndemnizatii() : "Nu este cazul", font);
+   addParagraph(document, "(2) Avantaje eventuale:", font);
+   addParagraph(document, conventie.getAvantaje() != null ? conventie.getAvantaje() : "Nu este cazul", font);
+   addParagraph(document, "(3) Alte precizări:", font);
+   addParagraph(document, conventie.getAltePrecizari() != null ? conventie.getAltePrecizari() : "Nu este cazul", font);
+
+   // Art. 13
+   addArticleTitle(document, "Art. 13. Prevederi finale", boldFont);
+   addParagraph(document, "Prezenta convenție-cadru s-a încheiat în trei exemplare la data: " + 
+                dateFormat.format(conventie.getDataIntocmirii()), font);
+// La final, adăugăm tabelul de semnături
+   document.add(Chunk.NEWLINE);
+   PdfPTable table = new PdfPTable(3);
+   table.setWidthPercentage(100);
+        // Adaugă tabelul de semnături
+        addSignatureTable(document, conventie, font, boldFont, authentication);
+
+        document.close();
+
+        String filename = String.format("conventie_%s_%s.pdf", 
+            conventie.getStudent().getNume(),
+            conventie.getCompanie().getNume());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", filename);
+
+        return new ResponseEntity<>(out.toByteArray(), headers, HttpStatus.OK);
+    }
+
+    // Metode helper
+    private void addArticleTitle(Document document, String title, Font font) throws DocumentException {
+        Paragraph paragraph = new Paragraph(title, font);
+        paragraph.setSpacingBefore(10f);
+        paragraph.setSpacingAfter(10f);
+        document.add(paragraph);
+    }
+
+    private void addParagraph(Document document, String text, Font font) throws DocumentException {
+        Paragraph paragraph = new Paragraph(text, font);
+        paragraph.setIndentationLeft(20f);
+        paragraph.setSpacingAfter(5f);
+        document.add(paragraph);
+    }
+
+    private void addSignatureTable(Document document, Conventie conventie, Font font, Font boldFont, Authentication authentication) throws DocumentException {
+        User user = (User) authentication.getPrincipal();
+        Partner partner = partnerRepository.findByEmail(user.getEmail())
+                .orElseThrow(() -> new RuntimeException("Partner not found"));
+        
+        PdfPTable table = new PdfPTable(4);
+        table.setWidthPercentage(100);
+        float[] columnWidths = new float[]{2.5f, 5f, 5f, 5f};
+        table.setWidths(columnWidths);
+
+        // Header
+        PdfPCell emptyHeader = new PdfPCell(new Paragraph(""));
+        PdfPCell uptHeader = new PdfPCell(new Paragraph("Universitatea Politehnica\nTimișoara,\nprin Rector", boldFont));
+        PdfPCell partenerHeader = new PdfPCell(new Paragraph("Partener de practică,\nprin Reprezentant", boldFont));
+        PdfPCell practicantHeader = new PdfPCell(new Paragraph("Practicant", boldFont));
+
+        uptHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+        partenerHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+        practicantHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(emptyHeader);
+        table.addCell(uptHeader);
+        table.addCell(partenerHeader);
+        table.addCell(practicantHeader);
+
+        // Nume și prenume
+        PdfPCell numeLabel = new PdfPCell(new Paragraph("Nume și prenume", boldFont));
+        numeLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        PdfPCell numeUPT = new PdfPCell(new Paragraph("Conf. univ. dr. ing.\nFlorin DRĂGAN", font));
+        PdfPCell numePartener = new PdfPCell(new Paragraph(conventie.getCompanie().getReprezentant(), font));
+        PdfPCell numePracticant = new PdfPCell(new Paragraph(conventie.getStudent().getNumeComplet(), font));
+
+        numeUPT.setHorizontalAlignment(Element.ALIGN_CENTER);
+        numePartener.setHorizontalAlignment(Element.ALIGN_CENTER);
+        numePracticant.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(numeLabel);
+        table.addCell(numeUPT);
+        table.addCell(numePartener);
+        table.addCell(numePracticant);
+
+        // Data
+        PdfPCell dataLabel = new PdfPCell(new Paragraph("Data", boldFont));
+        dataLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        PdfPCell dataUPT = new PdfPCell(new Paragraph(".....", font));
+        
+        // Data pentru partener - setăm data actuală dacă statusul este APROBATA_PARTENER
+        PdfPCell dataPartener = new PdfPCell();
+        if (conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+            dataPartener.addElement(new Paragraph(dateFormat.format(new java.util.Date()), font));
+        } else {
+            dataPartener.addElement(new Paragraph(".....", font));
         }
+        
+        PdfPCell dataPracticant = new PdfPCell(new Paragraph(".....", font));
+
+        dataUPT.setHorizontalAlignment(Element.ALIGN_CENTER);
+        dataPartener.setHorizontalAlignment(Element.ALIGN_CENTER);
+        dataPracticant.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(dataLabel);
+        table.addCell(dataUPT);
+        table.addCell(dataPartener);
+        table.addCell(dataPracticant);
+
+        // Semnătura
+        PdfPCell semnLabel = new PdfPCell(new Paragraph("Semnătura", boldFont));
+        semnLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+
+        PdfPCell semnUPT = new PdfPCell(new Paragraph(".....", font));
+        
+        // Semnătura partenerului
+        PdfPCell semnPartener = new PdfPCell();
+        if ((conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
+             conventie.getStatus() == ConventieStatus.APROBATA) && 
+             partner.getSemnatura() != null) {
+            try {
+                Image signature = Image.getInstance(partner.getSemnatura());
+                signature.scaleToFit(100, 50);
+                signature.setAlignment(Element.ALIGN_CENTER);
+                semnPartener.addElement(signature);
+            } catch (Exception e) {
+                semnPartener.addElement(new Paragraph(".....", font));
+            }
+        } else {
+            semnPartener.addElement(new Paragraph(".....", font));
+        }
+        
+        PdfPCell semnPracticant = new PdfPCell();
+        if (conventie.getStudent().getSemnatura() != null) {
+            try {
+                Image signature = Image.getInstance(conventie.getStudent().getSemnatura());
+                signature.scaleToFit(100, 50);
+                signature.setAlignment(Element.ALIGN_CENTER);
+                semnPracticant.addElement(signature);
+            } catch (Exception e) {
+                semnPracticant.addElement(new Paragraph(".....", font));
+            }
+        } else {
+            semnPracticant.addElement(new Paragraph(".....", font));
+        }
+
+        semnUPT.setHorizontalAlignment(Element.ALIGN_CENTER);
+        semnPartener.setHorizontalAlignment(Element.ALIGN_CENTER);
+        semnPracticant.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        table.addCell(semnLabel);
+        table.addCell(semnUPT);
+        table.addCell(semnPartener);
+        table.addCell(semnPracticant);
+
+        document.add(table);
+        
+        // Am luat la cunoștință
+        Paragraph amLuat = new Paragraph("Am luat la cunoștință,", font);
+        amLuat.setSpacingBefore(20);
+        amLuat.setSpacingAfter(20);
+        document.add(amLuat);
+        
+        // Al doilea tabel - similar cu cel din metodele existente
+        // ...
+    }
+    // Export Word
+    private void addSignaturesTableWord(XWPFDocument document, Conventie conventie, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        Partner partner = partnerRepository.findByEmail(user.getEmail())
+                .orElseThrow(() -> new RuntimeException("Partner not found"));
+        
+        // Adăugăm textul despre întocmire
+        XWPFParagraph datePara = document.createParagraph();
+        XWPFRun dateRun = datePara.createRun();
+        dateRun.setText("Întocmit în trei exemplare la data: " + formatDate(conventie.getDataIntocmirii()) + ".");
+        dateRun.addBreak();
+        dateRun.addBreak();
+
+        // Primul tabel pentru semnături principale
+        XWPFTable mainTable = document.createTable(4, 4);
+        
+        // Prima linie - header cu bold
+        XWPFTableRow headerRow = mainTable.getRow(0);
+        headerRow.getCell(0).setText("");
+        setCellTextBold(headerRow.getCell(1), "Universitatea Politehnica\nTimișoara,\nprin Rector");
+        setCellTextBold(headerRow.getCell(2), "Partener de practică,\nprin Reprezentant");
+        setCellTextBold(headerRow.getCell(3), "Practicant");
+
+        // A doua linie - Nume și prenume
+        XWPFTableRow nameRow = mainTable.getRow(1);
+        setCellTextBold(nameRow.getCell(0), "Nume și prenume");
+        setCellText(nameRow.getCell(1), "Conf. univ. dr. ing.\nFlorin DRĂGAN");
+        setCellText(nameRow.getCell(2), conventie.getCompanie().getReprezentant());
+        setCellText(nameRow.getCell(3), conventie.getStudent().getNumeComplet());
+
+        // A treia linie - Data
+        XWPFTableRow dateRow = mainTable.getRow(2);
+        setCellTextBold(dateRow.getCell(0), "Data");
+        setCellText(dateRow.getCell(1), ".....");
+        
+        // Data pentru partener
+        if (conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+            setCellText(dateRow.getCell(2), dateFormat.format(new java.util.Date()));
+        } else {
+            setCellText(dateRow.getCell(2), ".....");
+        }
+        
+        setCellText(dateRow.getCell(3), ".....");
+
+        // A patra linie - Semnătura
+        XWPFTableRow signRow = mainTable.getRow(3);
+        setCellTextBold(signRow.getCell(0), "Semnătura");
+        setCellText(signRow.getCell(1), ".....");
+        
+        // Semnătura partenerului
+        XWPFTableCell partnerCell = signRow.getCell(2);
+        if ((conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
+             conventie.getStatus() == ConventieStatus.APROBATA) && 
+             partner.getSemnatura() != null) {
+            
+            XWPFParagraph partnerPara = partnerCell.getParagraphs().get(0);
+            partnerPara.setAlignment(ParagraphAlignment.CENTER);
+            partnerPara.setSpacingBefore(400);
+            XWPFRun partnerRun = partnerPara.createRun();
+            
+            try {
+                partnerRun.addPicture(
+                    new ByteArrayInputStream(partner.getSemnatura()),
+                    XWPFDocument.PICTURE_TYPE_PNG,
+                    "signature.png",
+                    Units.toEMU(100),
+                    Units.toEMU(50)
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+                partnerRun.setText(".....");
+            }
+        } else {
+            setCellText(partnerCell, ".....");
+        }
+        
+        // Semnătura studentului
+        XWPFTableCell studentCell = signRow.getCell(3);
+        if (conventie.getStudent().getSemnatura() != null) {
+            XWPFParagraph studentPara = studentCell.getParagraphs().get(0);
+            studentPara.setAlignment(ParagraphAlignment.CENTER);
+            studentPara.setSpacingBefore(400);
+            XWPFRun studentRun = studentPara.createRun();
+            
+            try {
+                studentRun.addPicture(
+                    new ByteArrayInputStream(conventie.getStudent().getSemnatura()),
+                    XWPFDocument.PICTURE_TYPE_PNG,
+                    "signature.png",
+                    Units.toEMU(100),
+                    Units.toEMU(50)
+                );
+            } catch (Exception e) {
+                e.printStackTrace();
+                studentRun.setText(".....");
+            }
+        } else {
+            setCellText(studentCell, ".....");
+        }
+
+        // Am luat la cunoștință
+        XWPFParagraph amLuatPara = document.createParagraph();
+        XWPFRun amLuatRun = amLuatPara.createRun();
+        amLuatRun.setText("Am luat la cunoștință,");
+        amLuatRun.addBreak();
+        amLuatRun.addBreak();
+
+        // Al doilea tabel pentru supervizori - similar cu cel din metodele existente
+        // ...
+    }
+
+   
+
+    private void setCellTextBold(XWPFTableCell cell, String text) {
+        XWPFParagraph paragraph = cell.getParagraphs().get(0);
+        paragraph.setAlignment(ParagraphAlignment.CENTER);
+        XWPFRun run = paragraph.createRun();
+        run.setBold(true);
+        
+        String[] lines = text.split("\n");
+        for (int i = 0; i < lines.length; i++) {
+            run.setText(lines[i]);
+            if (i < lines.length - 1) {
+                run.addBreak();
+            }
+        }
+    }
+
+    private String formatDate(java.util.Date date) {
+        if (date == null) {
+            return ".....";
+        }
+        return new SimpleDateFormat("dd.MM.yyyy").format(date);
     }
     
-    // Export Word
-    @GetMapping("/conventie-export-word/{id}")
-    public ResponseEntity<byte[]> exportConventieWord(@PathVariable("id") int id, Authentication authentication) {
-        User user = (User) authentication.getPrincipal();
-        Partner partner = partnerRepository.findByEmail(user.getEmail())
-                .orElseThrow(() -> new RuntimeException("Partner not found"));
+
+    private XWPFDocument generateWordDocument(Conventie conventie, Authentication authentication) throws IOException {
+        XWPFDocument document = new XWPFDocument();
         
-        Conventie conventie = conventieRepository.findById(id);
-        
-        if (conventie == null || conventie.getCompanie().getId() != partner.getCompanie().getId()) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        try {
-            // Use the export functionality you already have
-            // Stub for Word generation - you'll implement this
-            
-            String filename = String.format("conventie_%s_%s.docx", 
-                conventie.getStudent().getNume(),
-                conventie.getCompanie().getNume());
-            
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
-            headers.setContentDispositionFormData("attachment", filename);
-            
-            return new ResponseEntity<>(new byte[0], headers, HttpStatus.OK);
-            
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
+        // Setează marginile documentului (1440 twips = 1 inch)
+        CTSectPr sectPr = document.getDocument().getBody().addNewSectPr();
+        CTPageMar pageMar = sectPr.addNewPgMar();
+        pageMar.setLeft(BigInteger.valueOf(1440));
+        pageMar.setRight(BigInteger.valueOf(1440));
+        pageMar.setTop(BigInteger.valueOf(1440));
+        pageMar.setBottom(BigInteger.valueOf(1440));
+
+        addHeader(document);
+        addTitle(document);
+        addParties(document, conventie);
+        addArticles(document, conventie);
+        // Modificăm și apelul către addSignatures pentru a include authentication
+        addSignaturesTableWord(document, conventie, authentication);
+        addAnnex(document, conventie);
+
+        return document;
     }
+    
+    private void addHeader(XWPFDocument document) {
+        XWPFParagraph headerPara = document.createParagraph();
+        headerPara.setAlignment(ParagraphAlignment.RIGHT);
+        XWPFRun headerRun = headerPara.createRun();
+        headerRun.setBold(true);
+        headerRun.setText("ANEXA 3");
+        headerRun.addBreak();
+        headerRun.setText("Nr. _____ / " + new SimpleDateFormat("dd.MM.yyyy").format(new java.util.Date()));
+        headerRun.addBreak();
+    }
+
+    private void addTitle(XWPFDocument document) {
+        XWPFParagraph titlePara = document.createParagraph();
+        titlePara.setAlignment(ParagraphAlignment.CENTER);
+        XWPFRun titleRun = titlePara.createRun();
+        titleRun.setBold(true);
+        titleRun.setFontSize(14);
+        titleRun.setText("CONVENȚIE-CADRU");
+        titleRun.addBreak();
+        titleRun.setText("privind efectuarea stagiului de practică în cadrul");
+        titleRun.addBreak();
+        titleRun.setText("programelor de studii universitare de licență sau masterat");
+        titleRun.addBreak();
+        titleRun.addBreak();
+    }
+
+    private void addParties(XWPFDocument document, Conventie conventie) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+
+        addParagraph(document, "Prezenta convenție-cadru se încheie între:");
+
+        // UPT
+        addParagraph(document, "1. Universitatea Politehnica Timișoara, reprezentată de Rector, " +
+                     "conf. univ. dr. ing. Florin DRĂGAN, cu sediul în TIMIȘOARA, Piața Victoriei, Nr. 2, " +
+                     "cod 300006, telefon: 0256-403011, email: rector@upt.ro, " +
+                     "cod unic de înregistrare: 4269282, denumită în continuare organizator de practică");
+
+        // Companie
+        addParagraph(document, "2. " + conventie.getCompanie().getNume() + ", " +
+                     "reprezentată de " + conventie.getCompanie().getReprezentant() +
+                     " în calitate de " + conventie.getCompanie().getCalitate() +
+                     ", cu sediul în " + conventie.getCompanie().getAdresa() +
+                     ", telefon " + conventie.getCompanie().getTelefon() +
+                     ", denumită în continuare partener de practică");
+
+        // Student
+        addParagraph(document, "3. Student " + conventie.getStudent().getNume() + " " + 
+                     conventie.getStudent().getPrenume() + ", " +
+                     "CNP " + conventie.getStudent().getCnp() +
+                     ", data nașterii " + dateFormat.format(conventie.getStudent().getDataNasterii()) +
+                     ", locul nașterii " + conventie.getStudent().getLoculNasterii() +
+                     ", cetățenie " + conventie.getStudent().getCetatenie() +
+                     ", CI seria " + conventie.getStudent().getSerieCi() +
+                     " nr. " + conventie.getStudent().getNumarCi() +
+                     ", adresa " + conventie.getStudent().getAdresa() +
+                     ", înscris în anul universitar " + conventie.getStudent().getAnUniversitar() +
+                     ", facultatea " + conventie.getStudent().getFacultate() +
+                     ", specializarea " + conventie.getStudent().getSpecializare() +
+                     ", anul de studiu " + conventie.getStudent().getAnDeStudiu() +
+                     ", email " + conventie.getStudent().getEmail() +
+                     ", telefon " + conventie.getStudent().getTelefon() +
+                     ", denumit în continuare practicant");
+    }
+
+    private void addArticles(XWPFDocument document, Conventie conventie) {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+
+        // Art. 1
+        addArticleTitle(document, "Art. 1. Obiectul convenției-cadru");
+        addParagraph(document, "(1) Convenția-cadru stabilește modul în care se organizează și se " +
+                     "desfășoară stagiul de practică în vederea consolidării cunoștințelor teoretice și " +
+                     "formarea abilităților practice, spre a le aplica în concordanță cu specializarea pentru " +
+                     "care se instruiește studentul practicant.");
+        addParagraph(document, "(2) Stagiul de practică este realizat de practicant în vederea dobândirii " +
+                     "competențelor profesionale menționate în Portofoliul de practică care este corelat cu fișa disciplinei de practică, " +
+                     "parte integrantă a prezentei convenții. " +
+                     "Locul desfășurării stagiului de practică este: " + conventie.getLoculDesfasurarii());
+        addParagraph(document, "(3) Modalitățile de derulare și conținutul stagiului de practică sunt descrise în " +
+                     "prezenta convenție-cadru și în portofoliul de practică din anexă.");
+
+        // Art. 2
+        addArticleTitle(document, "Art. 2. Statutul practicantului");
+        addParagraph(document, "Practicantul rămâne, pe toată durata stagiului de pregătire practică, student al " +
+                     "Universității Politehnica Timișoara.");
+
+        // Art. 3
+        addArticleTitle(document, "Art. 3. Durata și perioada desfășurării stagiului de practică");
+        addParagraph(document, "(1) Durata stagiului de practică, precizată în planul de învățământ, este de " +
+                     conventie.getDurataInPlanulDeInvatamant() + " [h].");
+        addParagraph(document, "(2) Perioada desfășurării stagiului de practică este conformă structurii anului universitar curent " +
+                     "de la " + dateFormat.format(conventie.getDataInceput()) +
+                     " până la " + dateFormat.format(conventie.getDataSfarsit()));
+
+        addArticleTitle(document, "Art. 4. Plata și obligațiile sociale");
+        addParagraph(document, "(1) Stagiul de pregătire practică (se bifează situația corespunzătoare):");
+        addParagraph(document, "☐ - se efectuează în cadrul unui contract de muncă, cei doi parteneri putând să beneficieze " +
+                     "de prevederile Legii nr. 72/2007 privind stimularea încadrării în muncă a elevilor și studenților;");
+        addParagraph(document, "☐ - nu se efectuează în cadrul unui contract de muncă;");
+        addParagraph(document, "☐ - se efectuează în cadrul unui proiect finanțat prin Fondul Social European;");
+        addParagraph(document, "☐ - se efectuează în cadrul proiectului ...");
+        addParagraph(document, "(2) În cazul angajării ulterioare, perioada stagiului nu va fi considerată ca vechime " +
+                     "în muncă în situația în care convenția nu se derulează în cadrul unui contract de muncă.");
+        addParagraph(document, "(3) Practicantul nu poate pretinde un salariu din partea partenerului de practică, cu " +
+                     "excepția situației în care practicantul are statut de angajat.");
+        addParagraph(document, "(4) Partenerul de practică poate totuși acorda practicantului o indemnizație, " +
+                     "gratificare, primă sau avantaje în natură, conform legislației în vigoare.");
+
+        // Art. 5
+        addArticleTitle(document, "Art. 5. Responsabilitățile practicantului");
+        addParagraph(document, "(1) Practicantul are obligația, ca pe durata derulării stagiului de practică, să " +
+                     "respecte programul de lucru stabilit și să execute activitățile specificate de tutore " +
+                     "în conformitate cu portofoliul de practică, în condițiile respectării cadrului legal cu " +
+                     "privire la volumul și dificultatea acestora.");
+        addParagraph(document, "(2) Pe durata stagiului, practicantul respectă regulamentul de ordine interioară al " +
+                     "partenerului de practică. În cazul nerespectării acestui regulament, conducătorul " +
+                     "partenerului de practică își rezervă dreptul de a anula convenția-cadru, după ce în " +
+                     "prealabil a ascultat punctul de vedere al practicantului și al îndrumătorului de " +
+                     "practică și a înștiințat conducătorul facultății unde practicantul este înmatriculat " +
+                     "și după primirea confirmării de primire a acestei informații. Această situație conduce la refacerea stagiului de practică și la susținerea unui nou colocviu de evaluare în anul universitar următor.");
+        addParagraph(document, "(3) Practicantul are obligația de a respecta normele de securitate și sănătate în " +
+                     "muncă pe care le-a însușit de la reprezentantul partenerului de practică înainte de " +
+                     "începerea stagiului de practică.");
+        addParagraph(document, "(4) Practicantul se angajează să nu folosească, în niciun caz, informațiile la care " +
+                     "are acces în timpul stagiului despre partenerul de practică sau clienții săi, pentru a " +
+                     "le comunica unui terț sau pentru a le publica, chiar după terminarea stagiului, decât " +
+                     "cu acordul respectivului partener de practică.");
+
+        // Art. 6
+        addArticleTitle(document, "Art. 6. Responsabilitățile partenerului de practică");
+        addParagraph(document, "(1) Partenerul de practică va stabili un tutore pentru stagiul de practică, " +
+                     "selectat dintre salariații proprii și ale cărui obligații sunt menționate în portofoliul " +
+                     "de practică, parte integrantă a convenției-cadru.");
+        addParagraph(document, "(2) În cazul nerespectării obligațiilor de către practicant, tutorele va contacta " +
+                     "cadrul didactic supervizor, responsabil de practică, aplicându-se sancțiuni conform " +
+                     "legilor și regulamentelor în vigoare.");
+        addParagraph(document, "(3) Înainte de începerea stagiului de practică, partenerul are obligația de a face " +
+                     "practicantului instructajul cu privire la normele de securitate și sănătate în muncă, " +
+                     "pentru fiecare loc distinct de practică, în conformitate cu legislația în vigoare. " +
+                     "Printre responsabilitățile sale, partenerul de practică va lua măsurile necesare pentru " +
+                     "securitatea și sănătatea în muncă a practicantului, precum și pentru comunicarea " +
+                     "regulilor de prevenire a riscurilor profesionale.");
+        addParagraph(document, "(4) Partenerul de practică trebuie să pună la dispoziția practicantului toate " +
+                     "mijloacele necesare pentru desfășurarea activităților precizate în portofoliul de practică.");
+        addParagraph(document, "(5) Partenerul de practică are obligația de a asigura practicantului accesul liber " +
+                     "la serviciul de medicina muncii, pe durata derulării pregătirii practice.");
+        addParagraph(document, "(6) În urma desfășurării cu succes a stagiului, partenerul de practică va acorda " +
+                     "studentului, la cerere, o adeverință constatatoare.");
+
+        // Art. 7
+        addArticleTitle(document, "Art. 7. Obligațiile organizatorului de practică");
+        addParagraph(document, "(1) Organizatorul de practică desemnează un cadru didactic supervizor, responsabil " +
+                     "cu planificarea, organizarea și supravegherea desfășurării pregătirii practice. " +
+                     "Cadrul didactic supervizor responsabil de practică, împreună cu tutorele desemnat de " +
+                     "partenerul de practică stabilesc tematica de practică și competențele profesionale " +
+                     "care fac obiectul stagiului de pregătire practică.");
+        addParagraph(document, "(2) În cazul în care derularea stagiului de pregătire practică nu este conformă cu " +
+                     "angajamentele luate de către partenerul de practică în cadrul prezentei convenții, " +
+                     "conducătorul organizatorului de practică poate decide întreruperea stagiului de " +
+                     "pregătire practică conform convenției-cadru, după informarea prealabilă a " +
+                     "conducătorului partenerului de practică și după primirea confirmării de primire a " +
+                     "acestei informații.");
+
+        // Art. 8
+        addArticleTitle(document, "Art. 8. Persoane desemnate de organizatorul de practică și partenerul de practică");
+        addParagraph(document, "(1) Tutorele (persoana care va avea responsabilitatea practicantului din partea partenerului de practică):");
+        addParagraph(document, "Dl/Dna " + conventie.getTutore().getNume() + " " + conventie.getTutore().getPrenume());
+        addParagraph(document, "Funcția: " + conventie.getTutore().getFunctie());
+        addParagraph(document, "Telefon: " + conventie.getTutore().getTelefon());
+        addParagraph(document, "Email: " + conventie.getTutore().getEmail());
+        
+        addParagraph(document, "(2) Cadrul didactic supervizor, responsabil cu urmărirea derulării stagiului de practică din partea organizatorului de practică:");
+        addParagraph(document, "Dl/Dna " + conventie.getCadruDidactic().getNume() + " " + conventie.getCadruDidactic().getPrenume());
+        addParagraph(document, "Funcția: " + conventie.getCadruDidactic().getFunctie());
+        addParagraph(document, "Telefon: " + conventie.getCadruDidactic().getTelefon());
+        addParagraph(document, "Email: " + conventie.getCadruDidactic().getEmail());
+
+        // Art. 9
+        addArticleTitle(document, "Art. 9. Evaluarea stagiului de pregătire practică prin credite transferabile");
+        addParagraph(document, "Numărul de credite transferabile ce vor fi obținute în urma desfășurării stagiului " +
+                     "de practică este de " + conventie.getNumarCredite() + ".");
+
+        // Art. 10
+        addArticleTitle(document, "Art. 10. Raportul privind stagiul de pregătire practică");
+        addParagraph(document, "(1) În timpul derulării stagiului de practică, tutorele, împreună cu cadrul " +
+                     "didactic supervizor, vor evalua practicantul în permanență. Vor fi monitorizate și " +
+                     "evaluate atât nivelul de dobândire a competențelor profesionale, cât și " +
+                     "comportamentul și modalitatea de integrare a practicantului în activitatea " +
+                     "partenerului de practică (disciplină, punctualitate, responsabilitate în rezolvarea " +
+                     "sarcinilor, respectarea regulamentului de ordine interioară al partenerului de practică).");
+        addParagraph(document, "(2) La finalul stagiului de practică, tutorele completează atestatul de practică " +
+                     "și opțional fișa de evaluare, pe baza evaluării nivelului de dobândire a " +
+                     "competențelor de către practicant. Rezultatul acestei evaluări va sta la baza notării " +
+                     "practicantului de către cadrul didactic supervizor.");
+        addParagraph(document, "La finalul stagiului de practică, studentul elaborează un caiet de practică, " +
+                     "însușit și de tutorele din partea partenerului de practică. Atestatul și fișa de " +
+                     "evaluare completate de tutore vor sta la baza notării studentului conform " +
+                     "Regulamentului cadru de organizare și desfășurare a practicii studenților în UPT.");
+
+        // Art. 11
+        addArticleTitle(document, "Art. 11. Sănătatea și securitatea în muncă");
+        addParagraph(document, "(1) Practicantul anexează prezentului contract dovada asigurării medicale " +
+                     "valabile în perioada și pe teritoriul statului unde se desfășoară stagiul de practică.");
+        addParagraph(document, "(2) Partenerul de practică are obligația respectării prevederilor legale cu " +
+                     "privire la sănătatea și securitatea în muncă a practicatului pe durata stagiului de practică.");
+        addParagraph(document, "(3) Practicantului i se asigură protecție socială conform legislației în vigoare. " +
+                     "Ca urmare, conform dispozițiilor Legii nr. 346/2002 privind asigurările pentru " +
+                     "accidente de muncă și boli profesionale, cu modificările și completările ulterioare, " +
+                     "practicantul beneficiază de legislația privitoare la accidentele de muncă pe toată " +
+                     "durata efectuării pregătirii practice.");
+        addParagraph(document, "(4) În cazul unui accident suferit de practicant, fie în cursul lucrului, fie în " +
+                     "timpul deplasării la lucru, partenerul de practică se angajează să înștiințeze " +
+                     "asiguratorul cu privire la accidentul care a avut loc.");
+
+        // Art. 12
+        addArticleTitle(document, "Art. 12. Condiții facultative de desfășurare a stagiului de pregătire practică");
+        addParagraph(document, "(1) Îndemnizație, gratificări sau prime acordate practicantului:");
+        addParagraph(document, conventie.getIndemnizatii() != null ? conventie.getIndemnizatii() : "Nu este cazul");
+        addParagraph(document, "(2) Avantaje eventuale (plata transportului de la și la locul desfășurării stagiului de practică, " +
+                     "tichete de masă, acces la cantina partenerului de practică etc.):");
+        addParagraph(document, conventie.getAvantaje() != null ? conventie.getAvantaje() : "Nu este cazul");
+        addParagraph(document, "(3) Alte precizări:");
+        addParagraph(document, conventie.getAltePrecizari() != null ? conventie.getAltePrecizari() : "Nu este cazul");
+
+        // Art. 13
+        addArticleTitle(document, "Art. 13. Prevederi finale");
+        addParagraph(document, "Această convenție-cadru s-a încheiat în trei exemplare la data: " + 
+                     dateFormat.format(conventie.getDataIntocmirii()));
+    }
+
+    
+    private void addSignatures(XWPFDocument document, Conventie conventie, Authentication authentication) {
+    	   User user = (User) authentication.getPrincipal();
+    	   Partner prodecan = partnerRepository.findByEmail(user.getEmail());
+    	   
+    	   document.createParagraph().createRun().addBreak();
+    	   XWPFTable table = document.createTable(2, 3);
+    	   table.setWidth("100%");
+    	   
+    	   XWPFTableRow headerRow = table.getRow(0);
+    	   setCellText(headerRow.getCell(0), "Universitatea Politehnica Timișoara\nRector");
+    	   setCellText(headerRow.getCell(1), conventie.getCompanie().getNume());
+    	   setCellText(headerRow.getCell(2), "Student");
+    	   
+    	   XWPFTableRow sigRow = table.getRow(1);
+
+    	   if (conventie.getStatus() == ConventieStatus.APROBATA && prodecan != null && prodecan.getSemnatura() != null) {
+    	       XWPFParagraph para = sigRow.getCell(0).getParagraphs().get(0);
+    	       XWPFRun run = para.createRun();
+    	       run.setText("Prof. dr. ing. Florin DRĂGAN\n\n");
+    	       
+    	       try {
+    	           run.addPicture(new ByteArrayInputStream(prodecan.getSemnatura()),
+    	                         XWPFDocument.PICTURE_TYPE_PNG,
+    	                         "semnatura.png",
+    	                         Units.toEMU(100),
+    	                         Units.toEMU(50));
+    	       } catch (Exception e) {
+    	           e.printStackTrace();
+    	       }
+    	       
+    	       run.addBreak();
+    	       run.setText("Data: " + new SimpleDateFormat("dd.MM.yyyy").format(conventie.getDataIntocmirii()));
+    	   } else {
+    	       setCellText(sigRow.getCell(0), 
+    	           "Prof. dr. ing. Florin DRĂGAN\n\nSemnătura: ____________\nData: ____________");
+    	   }
+    	   
+    	   setCellText(sigRow.getCell(1), 
+    	       conventie.getCompanie().getReprezentant() + "\n\nSemnătura: ____________\nData: ____________");
+    	   setCellText(sigRow.getCell(2), 
+    	       conventie.getStudent().getNume() + " " + conventie.getStudent().getPrenume() + 
+    	       "\n\nSemnătura: ____________\nData: ____________");
+    	}
+    
+
+   
+
+    private void addAnnex(XWPFDocument document, Conventie conventie) {
+        document.createParagraph().createRun().addBreak();
+        
+        addArticleTitle(document, "ANEXĂ LA CONVENȚIA-CADRU");
+        addArticleTitle(document, "PORTOFOLIU DE PRACTICĂ");
+        
+        // Adaugă detaliile portofoliului...
+    }
+
+    private void addArticleTitle(XWPFDocument document, String title) {
+        XWPFParagraph para = document.createParagraph();
+        XWPFRun run = para.createRun();
+        run.setBold(true);
+        run.setText(title);
+        run.addBreak();
+    }
+
+    private void addParagraph(XWPFDocument document, String text) {
+        XWPFParagraph para = document.createParagraph();
+        para.setIndentationLeft(720); // 0.5 inch indent
+        XWPFRun run = para.createRun();
+        run.setText(text);
+        run.addBreak();
+    }
+
+    private void setCellText(XWPFTableCell cell, String text) {
+        XWPFParagraph para = cell.getParagraphs().get(0);
+        para.setAlignment(ParagraphAlignment.CENTER);
+        XWPFRun run = para.createRun();
+        run.setText(text);
+    }
+    
+    @PostMapping("/upload-semnatura")
+    public String uploadSemnatura(@RequestParam("semnatura") MultipartFile file, 
+                                Authentication authentication,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            Partner partner = partnerRepository.findByEmail(user.getEmail())
+                    .orElseThrow(() -> new RuntimeException("Partner not found"));
+            
+            // Verificăm dacă fișierul este imagine
+            if (!file.getContentType().startsWith("image/")) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Vă rugăm să încărcați doar fișiere imagine (.jpg, .png).");
+                return "redirect:/partner/dashboard";
+            }
+
+            // Salvăm semnătura în obiectul Partner
+            partner.setSemnatura(file.getBytes());
+            
+            // Salvăm în baza de date
+            partnerRepository.save(partner);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Semnătura a fost încărcată cu succes!");
+            
+        } catch (IOException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la încărcarea semnăturii: " + e.getMessage());
+        }
+        
+        return "redirect:/partner/dashboard";
+    }
+
 }

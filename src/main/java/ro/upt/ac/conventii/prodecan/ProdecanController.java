@@ -403,20 +403,22 @@ public class ProdecanController {
             
             // Salvăm compania
             companieRepository.save(companie);
-            System.out.println("Companie salvată, ID=" + companie.getId());
-            if (companie.getId() == 0) {
+            // Obținem compania cu ID după salvare pentru a ne asigura că avem ID-ul corect
+            Companie savedCompanie = companieRepository.findById(companie.getId());
+            
+            // Verificăm dacă compania a fost salvată corect și are ID
+            if (savedCompanie == null || savedCompanie.getId() == 0) {
                 throw new RuntimeException("Compania a fost salvată dar nu are un ID valid!");
             }
             
             // Verificăm dacă avem toate datele pentru a crea un partener
-            if (companie.getReprezentant() != null && !companie.getReprezentant().isEmpty() &&
-                companie.getEmail() != null && !companie.getEmail().isEmpty()) {
+            if (savedCompanie.getReprezentant() != null && !savedCompanie.getReprezentant().isEmpty() &&
+                savedCompanie.getEmail() != null && !savedCompanie.getEmail().isEmpty()) {
                 
-                // Încercăm să extragem numele și prenumele din reprezentant
-                String[] numeParts = companie.getReprezentant().trim().split("\\s+");
-                String nume = numeParts.length > 0 ? numeParts[numeParts.length - 1] : companie.getReprezentant();
+                // Extragem numele și prenumele din reprezentant
+                String[] numeParts = savedCompanie.getReprezentant().trim().split("\\s+");
+                String nume = numeParts.length > 0 ? numeParts[numeParts.length - 1] : savedCompanie.getReprezentant();
                 
-                // Construim prenumele din restul numelui (dacă există)
                 StringBuilder prenumeBuilder = new StringBuilder();
                 for (int i = 0; i < numeParts.length - 1; i++) {
                     if (i > 0) prenumeBuilder.append(" ");
@@ -425,45 +427,43 @@ public class ProdecanController {
                 String prenume = prenumeBuilder.toString();
                 if (prenume.isEmpty()) prenume = "Reprezentant";
                 
-                // Creăm partenerul
+                // Creăm partenerul folosind obiectul companie salvat
                 Partner partner = new Partner();
-                partner.setCompanie(companie);
+                partner.setCompanie(savedCompanie); // Folosim compania salvată
                 partner.setNume(nume);
                 partner.setPrenume(prenume);
-                partner.setFunctie(companie.getCalitate() != null ? companie.getCalitate() : "Reprezentant Legal");
-                partner.setEmail(companie.getEmail());
-                partner.setTelefon(companie.getTelefon());
+                partner.setFunctie(savedCompanie.getCalitate() != null ? savedCompanie.getCalitate() : "Reprezentant Legal");
+                partner.setEmail(savedCompanie.getEmail());
+                partner.setTelefon(savedCompanie.getTelefon());
                 
-                try {
-                    // Salvăm partenerul
-                    partnerRepository.save(partner);
-                    
-                    // Creăm cont de utilizator
-                    String temporaryPassword = "password";
-                    User userPartner = new User();
-                    userPartner.setEmail(partner.getEmail());
-                    userPartner.setNume(partner.getNume());
-                    userPartner.setPrenume(partner.getPrenume());
-                    userPartner.setPassword(passwordEncoder.encode(temporaryPassword));
-                    userPartner.setRole("ROLE_PARTNER");
-                    userPartner.setEnabled(true);
-                    userPartner.setFirstLogin(true);
-                    
-                    userRepository.save(userPartner);
-                    
-                    redirectAttributes.addFlashAttribute("successMessage", 
-                        "Companie creată cu succes! A fost creat automat și un cont de partener pentru reprezentant.\n" +
-                        "----------------------------------------\n" +
-                        "Email: " + partner.getEmail() + "\n" +
-                        "PAROLA TEMPORARĂ: " + temporaryPassword + "\n" +
-                        "----------------------------------------\n" +
-                        "IMPORTANT: Salvați această parolă!");
-                } catch (Exception e) {
-                    System.err.println("EROARE LA SALVAREA PARTENERULUI: " + e.getMessage());
-                    e.printStackTrace(); // Pentru a vedea stack trace-ul complet
-                    redirectAttributes.addFlashAttribute("successMessage", 
-                        "Companie creată cu succes! Nu s-a putut crea contul de partener: " + e.getMessage());
+                // Salvăm partenerul
+                Partner savedPartner = partnerRepository.save(partner);
+                
+                // Verifică dacă partenerul a fost salvat corect
+                if (savedPartner == null || savedPartner.getId() == 0) {
+                    throw new RuntimeException("Partenerul nu a putut fi salvat corect!");
                 }
+                
+                // Creăm cont de utilizator
+                String temporaryPassword = "password";
+                User userPartner = new User();
+                userPartner.setEmail(partner.getEmail());
+                userPartner.setNume(partner.getNume());
+                userPartner.setPrenume(partner.getPrenume());
+                userPartner.setPassword(passwordEncoder.encode(temporaryPassword));
+                userPartner.setRole("ROLE_PARTNER");
+                userPartner.setEnabled(true);
+                userPartner.setFirstLogin(true);
+                
+                userRepository.save(userPartner);
+                
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "Companie creată cu succes! A fost creat automat și un cont de partener pentru reprezentant.\n" +
+                    "----------------------------------------\n" +
+                    "Email: " + partner.getEmail() + "\n" +
+                    "PAROLA TEMPORARĂ: " + temporaryPassword + "\n" +
+                    "----------------------------------------\n" +
+                    "IMPORTANT: Salvați această parolă!");
             } else {
                 // Compania a fost creată, dar nu avem suficiente date pentru partener
                 redirectAttributes.addFlashAttribute("successMessage", 
