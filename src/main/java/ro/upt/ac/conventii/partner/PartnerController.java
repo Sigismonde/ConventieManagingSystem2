@@ -4,6 +4,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.math.BigInteger;
+import java.nio.charset.StandardCharsets;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -173,8 +174,17 @@ public class PartnerController {
                 return "redirect:/partner/conventii";
             }
             
+            // Verificăm dacă a fost trimisă către tutore
+            if (conventie.isTrimisaTutore()) {
+                // Aprobarea de către tutore (care este tot partenerul)
+                conventie.setStatus(ConventieStatus.APROBATA);
+            } else {
+                // Aprobarea de către partenerul de practică
+                conventie.setStatus(ConventieStatus.APROBATA_PARTENER);
+            }
+            
             // Update status
-            conventie.setStatus(ConventieStatus.APROBATA_PARTENER);
+//            conventie.setStatus(ConventieStatus.APROBATA_PARTENER);
             conventieRepository.save(conventie);
             
             redirectAttributes.addFlashAttribute("successMessage", 
@@ -249,6 +259,45 @@ public class PartnerController {
         
         return "partner/conventie-view";
     }
+    
+    @GetMapping("/conventie-export/{id}")
+    public ResponseEntity<String> exportConventie(@PathVariable("id") int id, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        Partner partner = partnerRepository.findByEmail(user.getEmail())
+                .orElseThrow(() -> new RuntimeException("Partner not found"));
+        
+        Conventie conventie = conventieRepository.findById(id);
+        
+        if (conventie == null || conventie.getCompanie().getId() != partner.getCompanie().getId()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        String filename = String.format("conventie_%s_%s.html", 
+            conventie.getStudent().getNume(),
+            conventie.getCompanie().getNume());
+
+        String htmlContent = generateConventieHtml(conventie, authentication);
+
+       
+        
+        // Adaugă BOM la începutul documentului
+        byte[] bomBytes = new byte[] { (byte)0xEF, (byte)0xBB, (byte)0xBF };
+        byte[] contentBytes = htmlContent.getBytes(StandardCharsets.UTF_8);
+        byte[] fullContent = new byte[bomBytes.length + contentBytes.length];
+        System.arraycopy(bomBytes, 0, fullContent, 0, bomBytes.length);
+        System.arraycopy(contentBytes, 0, fullContent, bomBytes.length, contentBytes.length);
+        
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.TEXT_HTML);
+        headers.set(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=" + filename);
+        headers.set(HttpHeaders.CONTENT_TYPE, "text/html; charset=UTF-8");
+        
+        return new ResponseEntity<>(new String(fullContent, StandardCharsets.UTF_8), headers, HttpStatus.OK);
+
+        
+    }
+
+    
     
     @GetMapping("/conventie-export-pdf/{id}")
     public ResponseEntity<byte[]> exportConventiePdf(@PathVariable("id") int id, Authentication authentication) throws IOException, DocumentException {

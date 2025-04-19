@@ -259,7 +259,40 @@ public class StudentController {
      }
      return "redirect:/student/conventii";
  }
+ 
+ @PostMapping("/student/conventie-trimite-tutore/{id}")
+ public String trimiteConventieTutore(@PathVariable("id") int id, Authentication authentication, RedirectAttributes redirectAttributes) {
+     try {
+         User user = (User) authentication.getPrincipal();
+         Conventie conventie = conventieRepository.findById(id);
+         
+         if (conventie == null) {
+             redirectAttributes.addFlashAttribute("errorMessage", "Convenția nu a fost găsită!");
+             return "redirect:/student/conventii";
+         }
 
+         if (!conventie.getStudent().getEmail().equals(user.getEmail())) {
+             redirectAttributes.addFlashAttribute("errorMessage", "Nu aveți permisiunea să trimiteți această convenție!");
+             return "redirect:/student/conventii";
+         }
+
+         // Verificăm dacă convenția a fost aprobată de partener
+         if (conventie.getStatus() != ConventieStatus.APROBATA_PARTENER) {
+             redirectAttributes.addFlashAttribute("errorMessage", "Convenția trebuie să fie aprobată de partener înainte de a fi trimisă către tutore!");
+             return "redirect:/student/conventii";
+         }
+         
+         // Schimbăm statusul la TRIMISA_TUTORE
+         conventie.setStatus(ConventieStatus.TRIMISA_TUTORE);
+         conventieRepository.save(conventie);
+         
+         redirectAttributes.addFlashAttribute("successMessage", "Convenția a fost trimisă cu succes către tutore și așteaptă aprobarea acestuia!");
+         
+     } catch (Exception e) {
+         redirectAttributes.addFlashAttribute("errorMessage", "Eroare la trimiterea convenției către tutore: " + e.getMessage());
+     }
+     return "redirect:/student/conventii";
+ }
     @GetMapping("/student/conventie-edit/{id}")
     public String editConventie(@PathVariable("id") int id, 
                               Authentication authentication,

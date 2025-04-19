@@ -29,6 +29,11 @@ public interface ConventieRepository extends JpaRepository<Conventie, Integer> {
     List<Conventie> findByCompanieAndStatus(Companie companie, ConventieStatus status);
     List<Conventie> findTop5ByCompanieAndStatusOrderByDataIntocmiriiDesc(Companie companie, ConventieStatus status, Pageable pageable);
     
+ // Metode adăugate în ConventieRepository
+    List<Conventie> findByStatusAndCompanieId(ConventieStatus status, int companieId);
+    List<Conventie> findByStatusInAndCompanieId(List<ConventieStatus> statuses, int companieId);
+    List<Conventie> findTop5ByStatusAndCompanieIdOrderByDataIntocmiriiDesc(ConventieStatus status, int companieId, Pageable pageable);
+    
     @Query("SELECT c FROM Conventie c WHERE c.student.email = ?1 ORDER BY c.dataIntocmirii DESC")
     List<Conventie> findTop3ByStudentEmailOrderByDataIntocmiriiDesc(String email, Pageable pageable);
     

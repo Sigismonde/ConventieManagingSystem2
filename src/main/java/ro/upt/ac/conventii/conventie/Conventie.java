@@ -66,6 +66,16 @@ public class Conventie
 	    }
 	
 	   
+	 // Adăugare în clasa Conventie.java
+	    private boolean trimisaTutore;
+
+	    public boolean isTrimisaTutore() {
+	        return trimisaTutore;
+	    }
+
+	    public void setTrimisaTutore(boolean trimisaTutore) {
+	        this.trimisaTutore = trimisaTutore;
+	    }
 	
 	public int getId()
 	{
