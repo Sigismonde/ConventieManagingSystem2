@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Detalii Convenție - Partener</title>
+    <title>Detalii Convenție - Tutore</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -11,8 +11,8 @@
     <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" href="/partner/dashboard">
-                <i class="fas fa-building me-2"></i>Portal Convenții - Partener
+            <a class="navbar-brand" href="/tutore/dashboard">
+                <i class="fas fa-chalkboard-teacher me-2"></i>Portal Convenții - Tutore
             </a>
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
                 <span class="navbar-toggler-icon"></span>
@@ -20,7 +20,7 @@
             <div class="collapse navbar-collapse" id="navbarNav">
                 <ul class="navbar-nav me-auto">
                     <li class="nav-item">
-                        <a class="nav-link" href="/partner/conventii">
+                        <a class="nav-link" href="/tutore/conventii">
                             <i class="fas fa-file-signature me-1"></i>Convenții
                         </a>
                     </li>
@@ -29,13 +29,13 @@
                     <li class="nav-item">
                         <span class="nav-link">
                             <i class="fas fa-user me-1"></i>
-                            <span th:text="${partner.numeComplet + ' (' + partner.companie.nume + ')'}">Nume Partener (Companie)</span>
+                            <span th:text="${tutore.numeComplet + ' (' + tutore.companie.nume + ')'}">Nume Tutore (Companie)</span>
                         </span>
                     </li>
                     <li class="nav-item">
                         <form th:action="@{/logout}" method="post">
                             <button class="btn btn-link nav-link" type="submit">
-                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                                <i class="fas fa-sign-out-alt me-1"></i>Deconectare
                             </button>
                         </form>
                     </li>
@@ -63,13 +63,13 @@
             </h3>
             
             <div class="btn-group">
-                <a href="/partner/conventii" class="btn btn-outline-secondary">
+                <a href="/tutore/conventii" class="btn btn-outline-secondary">
                     <i class="fas fa-arrow-left me-1"></i>Înapoi la lista de convenții
                 </a>
-                <a th:href="@{'/partner/conventie-export-pdf/' + ${conventie.id}}" class="btn btn-danger" title="Export PDF">
+                <a th:href="@{'/tutore/conventie-export-pdf/' + ${conventie.id}}" class="btn btn-danger" title="Export PDF">
                     <i class="fas fa-file-pdf me-1"></i>PDF
                 </a>
-                <a th:href="@{'/partner/conventie-export-word/' + ${conventie.id}}" class="btn btn-success" title="Export Word">
+                <a th:href="@{'/tutore/conventie-export-word/' + ${conventie.id}}" class="btn btn-success" title="Export Word">
                     <i class="fas fa-file-word me-1"></i>Word
                 </a>
             </div>
@@ -79,8 +79,8 @@
             <div class="card-header d-flex justify-content-between">
                 <h5 class="mb-0">Informații Generale</h5>
                 <span th:class="${'badge ' + 
-                            (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE ? 'bg-warning' : '') +
-                            (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_PARTENER ? 'bg-info' : '') +
+                            (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).TRIMISA_TUTORE ? 'bg-warning' : '') +
+                            (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_TUTORE ? 'bg-info' : '') +
                             (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA ? 'bg-success' : '') +
                             (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA ? 'bg-danger' : '')}"
                       th:text="${conventie.status}">Status
@@ -205,8 +205,8 @@
         <div class="row mb-4">
             <div class="col-md-12">
                 <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Tutore din partea companiei</h5>
+                    <div class="card-header bg-info bg-opacity-25">
+                        <h5 class="mb-0">Informațiile mele ca tutore</h5>
                     </div>
                     <div class="card-body">
                         <div class="row">
@@ -263,23 +263,23 @@
         </div>
 
         <!-- Butoane de acțiune -->
-        <div th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE}" class="card">
+        <div th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).TRIMISA_TUTORE}" class="card">
             <div class="card-header bg-warning bg-opacity-25">
                 <h5 class="mb-0">Acțiuni</h5>
             </div>
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-6">
-                        <p>Această convenție este în așteptare de aprobare din partea companiei.</p>
+                        <p>Această convenție așteaptă aprobarea dumneavoastră în calitate de tutore.</p>
                     </div>
                     <div class="col-md-6 text-end">
-                        <form th:action="@{'/partner/conventie/aproba/' + ${conventie.id}}" method="post" class="d-inline me-2">
+                        <form th:action="@{'/tutore/conventie/aproba/' + ${conventie.id}}" method="post" class="d-inline me-2">
                             <button type="submit" class="btn btn-success" 
                                     onclick="return confirm('Confirmați aprobarea convenției?')">
                                 <i class="fas fa-check me-2"></i>Aprobă Convenția
                             </button>
                         </form>
-                        <form th:action="@{'/partner/conventie/respinge/' + ${conventie.id}}" method="post" class="d-inline">
+                        <form th:action="@{'/tutore/conventie/respinge/' + ${conventie.id}}" method="post" class="d-inline">
                             <button type="submit" class="btn btn-danger" 
                                     onclick="return confirm('Sigur doriți să respingeți convenția?')">
                                 <i class="fas fa-times me-2"></i>Respinge

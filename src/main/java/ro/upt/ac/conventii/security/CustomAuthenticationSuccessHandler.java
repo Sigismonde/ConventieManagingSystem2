@@ -34,6 +34,9 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
                 case "ROLE_PARTNER":
                     response.sendRedirect("/partner/dashboard");
                     break;
+                case "ROLE_TUTORE":
+                    response.sendRedirect("/tutore/dashboard"); // Adăugare redirecționare pentru tutore
+                    break;
                 default:
                     response.sendRedirect("/");
                     break;

@@ -83,11 +83,8 @@ public class User implements UserDetails {
     
 
     public Boolean isFirstLogin() {
-        // Returnăm true doar pentru studenți și doar dacă firstLogin este null sau true
-        if ("ROLE_STUDENT".equals(this.getRole())) {
-            return firstLogin == null || firstLogin;
-        }
-        return false;  // Pentru non-studenți returnăm mereu false
+        // Returnăm true dacă este prima logare pentru toți utilizatorii
+        return firstLogin == null || firstLogin;
     }
 
     public void setFirstLogin(Boolean firstLogin) {

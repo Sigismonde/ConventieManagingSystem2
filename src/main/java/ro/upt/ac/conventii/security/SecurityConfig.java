@@ -25,7 +25,7 @@ public class SecurityConfig {
                 .requestMatchers("/prorector/**").hasRole("PRORECTOR")
                 .requestMatchers("/student/**").hasRole("STUDENT")
                 .requestMatchers("/partner/**").hasRole("PARTNER")
-                .requestMatchers("/tutore/**").hasRole("TUTORE")
+                .requestMatchers("/tutore/**").hasRole("TUTORE") // Adaugă autorizare pentru tutore
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form

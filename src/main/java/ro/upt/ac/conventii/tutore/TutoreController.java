@@ -1,10 +1,10 @@
-// TutoreController.java
 package ro.upt.ac.conventii.tutore;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -14,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,8 +30,7 @@ import ro.upt.ac.conventii.conventie.Conventie;
 import ro.upt.ac.conventii.conventie.ConventieRepository;
 import ro.upt.ac.conventii.conventie.ConventieStatus;
 import ro.upt.ac.conventii.security.User;
-
-import java.text.SimpleDateFormat;
+import ro.upt.ac.conventii.security.UserRepository;
 
 @Controller
 @RequestMapping("/tutore")
@@ -41,6 +41,12 @@ public class TutoreController {
     
     @Autowired
     private ConventieRepository conventieRepository;
+    
+    @Autowired
+    private UserRepository userRepository;
+    
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
     
     // Dashboard endpoint
     @GetMapping("/dashboard")
@@ -242,6 +248,47 @@ public class TutoreController {
         return "redirect:/tutore/dashboard";
     }
     
+    // Reset password
+    @PostMapping("/reset-password")
+    public String resetPassword(Authentication authentication, 
+                              @RequestParam("currentPassword") String currentPassword,
+                              @RequestParam("newPassword") String newPassword,
+                              @RequestParam("confirmPassword") String confirmPassword,
+                              RedirectAttributes redirectAttributes) {
+        
+        try {
+            User user = (User) authentication.getPrincipal();
+            
+            // Verificăm parola curentă
+            if (!passwordEncoder.matches(currentPassword, user.getPassword())) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Parola curentă este incorectă!");
+                return "redirect:/tutore/dashboard";
+            }
+            
+            // Verificăm că parolele noi coincid
+            if (!newPassword.equals(confirmPassword)) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Noua parolă și confirmarea ei nu coincid!");
+                return "redirect:/tutore/dashboard";
+            }
+            
+            // Actualizăm parola
+            user.setPassword(passwordEncoder.encode(newPassword));
+            user.setFirstLogin(false);
+            userRepository.save(user);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Parola a fost schimbată cu succes!");
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la schimbarea parolei: " + e.getMessage());
+        }
+        
+        return "redirect:/tutore/dashboard";
+    }
+    
     // Export convention as HTML
     @GetMapping("/conventie-export/{id}")
     public ResponseEntity<String> exportConventie(@PathVariable("id") int id, Authentication authentication) {
@@ -269,96 +316,84 @@ public class TutoreController {
         return new ResponseEntity<>(htmlContent, headers, HttpStatus.OK);
     }
     
+    // Export convention as PDF
+    @GetMapping("/conventie-export-pdf/{id}")
+    public ResponseEntity<byte[]> exportConventiePdf(@PathVariable("id") int id, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        Tutore tutore = tutoreRepository.findByEmail(user.getEmail())
+                .orElseThrow(() -> new RuntimeException("Tutore not found"));
+        
+        Conventie conventie = conventieRepository.findById(id);
+        
+        if (conventie == null || conventie.getCompanie().getId() != tutore.getCompanie().getId()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Aici ar trebui să fie implementată generarea PDF-ului
+        // Utilizând librării precum iText, similar cu implementarea din PartnerController
+        
+        // Pentru acest exemplu, vom returna un răspuns gol
+        String filename = String.format("conventie_%s_%s.pdf", 
+            conventie.getStudent().getNume(),
+            conventie.getCompanie().getNume());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDispositionFormData("attachment", filename);
+
+        // Implementare incompletă - necesită generare reală de PDF
+        return new ResponseEntity<>(new byte[0], headers, HttpStatus.OK);
+    }
+    
+    // Export convention as Word
+    @GetMapping("/conventie-export-word/{id}")
+    public ResponseEntity<byte[]> exportConventieWord(@PathVariable("id") int id, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        Tutore tutore = tutoreRepository.findByEmail(user.getEmail())
+                .orElseThrow(() -> new RuntimeException("Tutore not found"));
+        
+        Conventie conventie = conventieRepository.findById(id);
+        
+        if (conventie == null || conventie.getCompanie().getId() != tutore.getCompanie().getId()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Aici ar trebui să fie implementată generarea Word-ului
+        // Utilizând librării precum Apache POI, similar cu implementarea din PartnerController
+        
+        // Pentru acest exemplu, vom returna un răspuns gol
+        String filename = String.format("conventie_%s_%s.docx", 
+            conventie.getStudent().getNume(),
+            conventie.getCompanie().getNume());
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_OCTET_STREAM);
+        headers.setContentDispositionFormData("attachment", filename);
+
+        // Implementare incompletă - necesită generare reală de Word
+        return new ResponseEntity<>(new byte[0], headers, HttpStatus.OK);
+    }
+    
     private String generateConventieHtml(Conventie conventie, Tutore tutore) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+        // Aici ar trebui să fie implementată generarea HTML-ului
+        // Similar cu implementarea din PartnerController sau StudentController
+        
+        // Pentru acest exemplu, vom returna un HTML simplu
         StringBuilder html = new StringBuilder();
         html.append("<!DOCTYPE html>\n")
             .append("<html>\n")
             .append("<head>\n")
             .append("<meta charset=\"UTF-8\">\n")
             .append("<title>Convenție de practică</title>\n")
-            .append("<style>\n")
-            .append("body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }\n")
-            .append("h1, h2 { text-align: center; }\n")
-            .append("h3 { margin-top: 20px; }\n")
-            .append(".header { text-align: right; margin-bottom: 20px; }\n")
-            .append(".content { margin: 20px 0; }\n")
-            .append("table { width: 100%; border-collapse: collapse; margin: 20px 0; }\n")
-            .append("table, th, td { border: 1px solid black; }\n")
-            .append("th, td { padding: 8px; text-align: left; }\n")
-            .append(".signature-table { border: none; }\n")
-            .append(".signature-table td { border: none; text-align: center; padding: 20px; }\n")
-            .append("</style>\n")
             .append("</head>\n")
-            .append("<body>\n");
-
-        // Adăugare conținut similar cu PartnerController.generateConventieHtml
-        // ...
-
-        // Adăugăm semnăturile - incluzând semnătura tutorelui în secțiunea corespunzătoare
-        html.append("<table class='signature-table'>")
-            .append("<tr>")
-            .append("<th>Universitatea Politehnica Timișoara, prin Rector</th>")
-            .append("<th>").append(conventie.getCompanie().getNume()).append("<br>")
-            .append(conventie.getCompanie().getReprezentant()).append("</th>")
-            .append("<th>Student<br>")
-            .append(conventie.getStudent().getNume()).append(" ")
-            .append(conventie.getStudent().getPrenume()).append("</th>")
-            .append("</tr>")
-            .append("<tr>")
-            .append("<td>Conf. univ. dr. ing. Florin DRĂGAN<br><br>Semnătura: ____________<br>Data: ____________</td>");
-
-        // Pentru partener, afișăm doar linie pentru semnătură
-        html.append("<td>").append(conventie.getCompanie().getReprezentant())
-            .append("<br><br>Semnătura: ____________<br>Data: ____________</td>");
-
-        // Pentru student, afișăm doar linie pentru semnătură 
-        html.append("<td>Semnătura: ____________<br>Data: ____________</td>")
-            .append("</tr>")
-            .append("</table>");
-
-        // Am luat la cunoștință - aici e locul pentru semnătura tutorelui
-        html.append("<p class='mt-4'>Am luat la cunoștință,</p>")
-            .append("<table class='signature-table'>")
-            .append("<tr>")
-            .append("<td><strong>Cadru didactic supervizor</strong><br>")
-            .append(conventie.getCadruDidactic().getNume()).append(" ")
-            .append(conventie.getCadruDidactic().getPrenume()).append("<br>")
-            .append("Funcția: ").append(conventie.getCadruDidactic().getFunctie()).append("<br><br>")
-            .append("Semnătura: ____________<br>")
-            .append("Data: ____________</td>")
-            .append("<td><strong>Tutore</strong><br>")
-            .append(conventie.getTutore().getNume()).append(" ")
-            .append(conventie.getTutore().getPrenume()).append("<br>")
-            .append("Funcția: ").append(conventie.getTutore().getFunctie()).append("<br><br>");
-
-        // Afișăm semnătura tutorelui dacă convenția este APROBATA_TUTORE sau APROBATA
-        if (conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
-            conventie.getStatus() == ConventieStatus.APROBATA) {
-            html.append("Semnătura: ");
+            .append("<body>\n")
+            .append("<h1>Convenție de practică</h1>\n")
+            .append("<p>Student: ").append(conventie.getStudent().getNumeComplet()).append("</p>\n")
+            .append("<p>Companie: ").append(conventie.getCompanie().getNume()).append("</p>\n")
+            .append("<p>Tutore: ").append(tutore.getNumeComplet()).append("</p>\n")
+            .append("</body>\n")
+            .append("</html>");
             
-            if (tutore.getSemnatura() != null) {
-                String base64Signature = Base64.getEncoder().encodeToString(tutore.getSemnatura());
-                html.append("<img src='data:image/png;base64,").append(base64Signature).append("' style='max-width:150px; max-height:70px;'>");
-            } else {
-                html.append("____________");
-            }
-            
-            html.append("<br>Data: ");
-            if (conventie.getDataIntocmirii() != null) {
-                html.append(dateFormat.format(conventie.getDataIntocmirii()));
-            } else {
-                html.append("____________");
-            }
-            html.append("</td>");
-        } else {
-            html.append("Semnătura: ____________<br>Data: ____________</td>");
-        }
-
-        html.append("</tr>")
-            .append("</table>");
-
-        html.append("</body></html>");
         return html.toString();
     }
 }

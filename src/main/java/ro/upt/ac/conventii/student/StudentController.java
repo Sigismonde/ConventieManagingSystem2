@@ -3,6 +3,7 @@ package ro.upt.ac.conventii.student;
 import java.sql.Date;
 import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.Optional;
 
 import com.lowagie.text.*;
 import com.lowagie.text.Document;
@@ -19,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -56,6 +58,9 @@ import ro.upt.ac.conventii.conventie.ConventieStatus;
 import ro.upt.ac.conventii.prodecan.Prodecan;
 import ro.upt.ac.conventii.prodecan.ProdecanRepository;
 import ro.upt.ac.conventii.security.User;
+import ro.upt.ac.conventii.security.UserRepository;
+import ro.upt.ac.conventii.tutore.Tutore;
+import ro.upt.ac.conventii.tutore.TutoreRepository;
 
 @Controller
 public class StudentController {
@@ -74,6 +79,15 @@ public class StudentController {
     
     @Autowired
     private ProdecanRepository prodecanRepository;  // Adăugăm această linie
+    
+    @Autowired
+    private TutoreRepository tutoreRepository;
+
+    @Autowired
+    private BCryptPasswordEncoder passwordEncoder;
+
+    @Autowired
+    private UserRepository userRepository;
 
     // Endpoint pentru dashboard
     @GetMapping("/student/dashboard")
@@ -179,7 +193,9 @@ public class StudentController {
     }
 
     @PostMapping("/student/conventie-create")
-    public String createConventie(@ModelAttribute Conventie conventie, Authentication authentication, RedirectAttributes redirectAttributes) {
+    public String createConventie(@ModelAttribute Conventie conventie, 
+                                  Authentication authentication, 
+                                  RedirectAttributes redirectAttributes) {
         try {
             User user = (User) authentication.getPrincipal();
             Student student = studentRepository.findByEmail(user.getEmail())
@@ -189,7 +205,47 @@ public class StudentController {
             conventie.setDataIntocmirii(new Date(System.currentTimeMillis()));
             conventie.setStatus(ConventieStatus.NETRIMIS);  // Setăm statusul inițial
             
+            // Salvăm convenția
             conventieRepository.save(conventie);
+            
+            // Verificăm dacă există deja un tutore cu acest email
+            Optional<Tutore> existingTutore = tutoreRepository.findByEmail(conventie.getTutore().getEmail());
+            
+            if (existingTutore.isEmpty()) {
+                // Nu există tutore, creăm unul nou și un cont de utilizator
+                Tutore tutore = new Tutore();
+                tutore.setNume(conventie.getTutore().getNume());
+                tutore.setPrenume(conventie.getTutore().getPrenume());
+                tutore.setFunctie(conventie.getTutore().getFunctie());
+                tutore.setEmail(conventie.getTutore().getEmail());
+                tutore.setTelefon(conventie.getTutore().getTelefon());
+                tutore.setCompanie(conventie.getCompanie());
+                
+                // Salvăm tutorele
+                tutoreRepository.save(tutore);
+                
+                // Verificăm dacă există deja un user cu acest email
+                User existingUser = userRepository.findByEmail(tutore.getEmail());
+                
+                if (existingUser == null) {
+                    // Creăm un cont de utilizator pentru tutore
+                    // Parola va fi formată din numele tutorului + prenume (fără spații)
+                    String password = tutore.getNume() + tutore.getPrenume();
+                    
+                    User userTutore = new User();
+                    userTutore.setEmail(tutore.getEmail());
+                    userTutore.setNume(tutore.getNume());
+                    userTutore.setPrenume(tutore.getPrenume());
+                    userTutore.setPassword(passwordEncoder.encode(password));
+                    userTutore.setRole("ROLE_TUTORE");
+                    userTutore.setEnabled(true);
+                    userTutore.setFirstLogin(true);
+                    
+                    userRepository.save(userTutore);
+                    
+                    System.out.println("Cont tutore creat cu succes: " + tutore.getEmail() + ", parola: " + password);
+                }
+            }
             
             redirectAttributes.addFlashAttribute("successMessage", "Convenția a fost creată cu succes!");
             return "redirect:/student/conventii";
