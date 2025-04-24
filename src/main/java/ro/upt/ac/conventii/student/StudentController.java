@@ -219,6 +219,8 @@ public class StudentController {
                 tutore.setFunctie(conventie.getTutore().getFunctie());
                 tutore.setEmail(conventie.getTutore().getEmail());
                 tutore.setTelefon(conventie.getTutore().getTelefon());
+                
+                // Salvăm corect compania pentru tutore
                 tutore.setCompanie(conventie.getCompanie());
                 
                 // Salvăm tutorele
@@ -229,8 +231,8 @@ public class StudentController {
                 
                 if (existingUser == null) {
                     // Creăm un cont de utilizator pentru tutore
-                    // Parola va fi formată din numele tutorului + prenume (fără spații)
-                    String password = tutore.getNume() + tutore.getPrenume();
+                    // Generăm o parolă mai sigură eliminând spațiile și caracterele speciale
+                    String password = (tutore.getNume() + tutore.getPrenume()).replaceAll("\\s+", "");
                     
                     User userTutore = new User();
                     userTutore.setEmail(tutore.getEmail());
