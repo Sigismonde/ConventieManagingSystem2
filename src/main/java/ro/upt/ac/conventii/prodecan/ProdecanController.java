@@ -977,8 +977,19 @@ public class ProdecanController {
             List<Conventie> toateConventiile = conventieRepository.findAll();
             System.out.println("Total convenții găsite: " + toateConventiile.size());
 
-            // Apoi filtrăm după status
+            // Apoi filtrăm doar după status IN_ASTEPTARE (indiferent de flagul trimisaTutore)
             List<Conventie> conventiiNesemnate = conventieRepository.findByStatus(ConventieStatus.IN_ASTEPTARE);
+            
+            // Adăugăm și convențiile care au status APROBATA_PARTENER (pentru compatibilitate cu versiunile vechi)
+            List<Conventie> conventiiAprobatePartener = conventieRepository.findByStatus(ConventieStatus.APROBATA_PARTENER);
+            if (conventiiAprobatePartener != null && !conventiiAprobatePartener.isEmpty()) {
+                if (conventiiNesemnate == null) {
+                    conventiiNesemnate = conventiiAprobatePartener;
+                } else {
+                    conventiiNesemnate.addAll(conventiiAprobatePartener);
+                }
+            }
+            
             List<Conventie> conventiiSemnate = conventieRepository.findByStatus(ConventieStatus.APROBATA);
             
             System.out.println("Convenții nesemnate: " + 

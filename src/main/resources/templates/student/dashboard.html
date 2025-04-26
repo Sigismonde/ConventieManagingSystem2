@@ -136,6 +136,12 @@
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
 </div>
         <!-- Tabel convenții recente -->
+<!-- Fragment pentru actualizarea culorilor în dashboard-ul studentului -->
+<!-- Secțiunea cu convenții recente -->
+
+<!-- Fragment pentru actualizarea culorilor în dashboard-ul studentului -->
+<!-- Secțiunea cu convenții recente -->
+
 <div class="card">
     <div class="card-header">
         <h5 class="card-title mb-0">
@@ -165,10 +171,12 @@
                         </td>
                         <td>
                             <span th:class="${'badge ' + 
-                                (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).NETRIMIS ? 'bg-primary' : '') +
+                                (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).NETRIMIS ? 'bg-secondary' : '') +
                                 (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE ? 'bg-warning' : '') +
+                                (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_PARTENER ? 'bg-primary' : '') +
                                 (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA ? 'bg-success' : '') +
                                 (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA ? 'bg-danger' : '')}"
+                                th:style="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_TUTORE ? 'background-color: #20c997 !important; color: white;' : ''}"
                                 th:text="${conventie.status}">
                                 Status
                             </span>
@@ -205,15 +213,42 @@
                                     <i class="fas fa-file-pdf"></i>
                                 </a>
 
-                                <!-- Trimitere - doar pentru NETRIMIS -->
+                                <!-- Trimitere către partener - doar pentru NETRIMIS -->
                                 <form th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).NETRIMIS}"
                                       th:action="@{'/student/conventie-trimite/' + ${conventie.id}}" 
                                       method="post"
-                                      class="d-inline">
+                                      class="d-inline me-1">
                                     <button type="submit" 
-                                            class="btn btn-success btn-sm"
+                                            class="btn btn-info btn-sm"
+                                            title="Trimite către partener"
                                             onclick="return confirm('Sigur doriți să trimiteți convenția?')">
                                         <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </form>
+                                
+                                <!-- Trimitere către tutore - doar pentru APROBATA_PARTENER -->
+                                <form th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_PARTENER}"
+                                      th:action="@{'/student/conventie-trimite-tutore/' + ${conventie.id}}" 
+                                      method="post"
+                                      class="d-inline me-1">
+                                    <button type="submit" 
+                                            class="btn btn-info btn-sm"
+                                            title="Trimite către tutore"
+                                            onclick="return confirm('Sigur doriți să trimiteți convenția către tutore?')">
+                                        <i class="fas fa-user-tie"></i>
+                                    </button>
+                                </form>
+                                
+                                <!-- BUTON NOU: Trimitere către prodecan - doar pentru APROBATA_TUTORE -->
+                                <form th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_TUTORE}"
+                                      th:action="@{'/student/conventie-trimite-prodecan/' + ${conventie.id}}" 
+                                      method="post"
+                                      class="d-inline me-1">
+                                    <button type="submit" 
+                                            class="btn btn-info btn-sm"
+                                            title="Trimite către prodecan"
+                                            onclick="return confirm('Sigur doriți să trimiteți convenția către prodecan pentru aprobare finală?')">
+                                        <i class="fas fa-university"></i>
                                     </button>
                                 </form>
 
@@ -234,7 +269,7 @@
         </div>
     </div>
 </div>
-    </div>
+ 
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

@@ -20,17 +20,18 @@ public class SecurityConfig {
         http
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/login", "/change-password", "/css/**", "/js/**", "/images/**").permitAll()
+                // Adăugăm pagina de resetare a parolei la lista de URL-uri permise fără autentificare
+                .requestMatchers("/login", "/change-password", "/reset-password", "/css/**", "/js/**", "/images/**").permitAll()
                 .requestMatchers("/prodecan/**").hasRole("PRODECAN")
                 .requestMatchers("/prorector/**").hasRole("PRORECTOR")
                 .requestMatchers("/student/**").hasRole("STUDENT")
                 .requestMatchers("/partner/**").hasRole("PARTNER")
-                .requestMatchers("/tutore/**").hasRole("TUTORE") // Adaugă autorizare pentru tutore
+                .requestMatchers("/tutore/**").hasRole("TUTORE")
                 .anyRequest().authenticated()
             )
             .formLogin(form -> form
                 .loginPage("/login")
-                .successHandler(authenticationSuccessHandler())  // Custom success handler
+                .successHandler(authenticationSuccessHandler())
                 .permitAll()
             )
             .logout(logout -> logout

@@ -351,6 +351,56 @@ public class StudentController {
      }
      return "redirect:/student/conventii";
  }
+ 
+ 
+//Adăugăm o nouă metodă în StudentController pentru trimiterea către prodecan
+//Această metodă trebuie adăugată în clasa ro.upt.ac.conventii.student.StudentController
+
+ @PostMapping("/student/conventie-trimite-prodecan/{id}")
+ public String trimiteConventieProdecan(@PathVariable int id, Authentication authentication, RedirectAttributes redirectAttributes) {
+     try {
+         User user = (User) authentication.getPrincipal();
+         Conventie conventie = conventieRepository.findById(id);
+         
+         if (conventie == null) {
+             redirectAttributes.addFlashAttribute("errorMessage", 
+                 "Convenția nu a fost găsită!");
+             return "redirect:/student/conventii";
+         }
+
+         if (!conventie.getStudent().getEmail().equals(user.getEmail())) {
+             redirectAttributes.addFlashAttribute("errorMessage", 
+                 "Nu aveți permisiunea să trimiteți această convenție!");
+             return "redirect:/student/conventii";
+         }
+
+         // Verificăm dacă convenția este în starea corectă - aprobată de tutore
+         if (conventie.getStatus() != ConventieStatus.APROBATA_TUTORE) {
+             redirectAttributes.addFlashAttribute("errorMessage", 
+                 "Convenția trebuie să fie mai întâi aprobată de tutore pentru a fi trimisă către prodecan!");
+             return "redirect:/student/conventii";
+         }
+
+         // Actualizăm statusul direct la IN_ASTEPTARE
+         conventie.setStatus(ConventieStatus.IN_ASTEPTARE);
+         
+         // Resetăm flagul trimisaTutore pentru a evita confuzii în interfață
+         conventie.setTrimisaTutore(false);
+         
+         // Resetăm data de întocmire pentru a marca când a fost trimisă către prodecan
+         conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
+         
+         conventieRepository.save(conventie);
+         
+         redirectAttributes.addFlashAttribute("successMessage", 
+             "Convenția a fost trimisă cu succes către prodecan pentru aprobare finală!");
+         
+     } catch (Exception e) {
+         redirectAttributes.addFlashAttribute("errorMessage", 
+             "Eroare la trimiterea convenției către prodecan: " + e.getMessage());
+     }
+     return "redirect:/student/conventii";
+ }
     @GetMapping("/student/conventie-edit/{id}")
     public String editConventie(@PathVariable("id") int id, 
                               Authentication authentication,
