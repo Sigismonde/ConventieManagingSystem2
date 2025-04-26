@@ -980,13 +980,25 @@ public class ProdecanController {
             // Apoi filtrăm doar după status IN_ASTEPTARE (indiferent de flagul trimisaTutore)
             List<Conventie> conventiiNesemnate = conventieRepository.findByStatus(ConventieStatus.IN_ASTEPTARE);
             
-            // Adăugăm și convențiile care au status APROBATA_PARTENER (pentru compatibilitate cu versiunile vechi)
+            
+            
+            // Adăugăm și convențiile care au status APROBATA_PARTENER
             List<Conventie> conventiiAprobatePartener = conventieRepository.findByStatus(ConventieStatus.APROBATA_PARTENER);
             if (conventiiAprobatePartener != null && !conventiiAprobatePartener.isEmpty()) {
                 if (conventiiNesemnate == null) {
                     conventiiNesemnate = conventiiAprobatePartener;
                 } else {
                     conventiiNesemnate.addAll(conventiiAprobatePartener);
+                }
+            }
+            
+            // Adăugăm și convențiile care au status IN_ASTEPTARE_PRODECAN
+            List<Conventie> conventiiAsteptareProdecan = conventieRepository.findByStatus(ConventieStatus.IN_ASTEPTARE_PRODECAN);
+            if (conventiiAsteptareProdecan != null && !conventiiAsteptareProdecan.isEmpty()) {
+                if (conventiiNesemnate == null) {
+                    conventiiNesemnate = conventiiAsteptareProdecan;
+                } else {
+                    conventiiNesemnate.addAll(conventiiAsteptareProdecan);
                 }
             }
             

@@ -382,7 +382,7 @@ public class StudentController {
          }
 
          // Actualizăm statusul direct la IN_ASTEPTARE
-         conventie.setStatus(ConventieStatus.IN_ASTEPTARE);
+         conventie.setStatus(ConventieStatus.IN_ASTEPTARE_PRODECAN);
          
          // Resetăm flagul trimisaTutore pentru a evita confuzii în interfață
          conventie.setTrimisaTutore(false);
