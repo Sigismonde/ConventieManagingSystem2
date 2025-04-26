@@ -519,11 +519,15 @@ public class ProdecanController {
          Conventie conventie = conventieRepository.findById(id);
          if (conventie != null) {
              // Verificăm dacă convenția este în starea corectă pentru aprobare
-             if (conventie.getStatus() != ConventieStatus.APROBATA_PARTENER) {
-                 redirectAttributes.addFlashAttribute("errorMessage", 
-                     "Convenția trebuie să fie mai întâi aprobată de partenerul de practică!");
-                 return "redirect:/prodecan/conventii";
-             }
+        	// Verificăm dacă convenția este în starea corectă pentru aprobare
+        	 if (conventie.getStatus() != ConventieStatus.APROBATA_PARTENER && 
+        	     conventie.getStatus() != ConventieStatus.TRIMISA_TUTORE && 
+        	     conventie.getStatus() != ConventieStatus.APROBATA_TUTORE &&
+        	     conventie.getStatus() != ConventieStatus.IN_ASTEPTARE_PRODECAN) {
+        	     redirectAttributes.addFlashAttribute("errorMessage", 
+        	         "Convenția trebuie să treacă prin fluxul complet de aprobare!");
+        	     return "redirect:/prodecan/conventii";
+        	 }
              
              // Setăm statusul și data aprobării
              conventie.setStatus(ConventieStatus.APROBATA);
