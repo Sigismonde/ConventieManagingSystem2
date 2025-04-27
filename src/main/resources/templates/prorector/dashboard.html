@@ -70,75 +70,76 @@
         </div>
 
         <!-- Convenții în Așteptare -->
-        <div class="card mb-4">
-            <div class="card-header bg-warning bg-opacity-25">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-clock me-2"></i>Convenții în Așteptare de Semnare
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Student</th>
-                                <th>Companie</th>
-                                <th>Perioada</th>
-                                <th>Data Întocmirii</th>
-                                <th>Status</th>
-                                <th>Acțiuni</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:if="${conventiiNesemnate == null || conventiiNesemnate.empty}">
-                                <td colspan="6" class="text-center">Nu există convenții în așteptare.</td>
-                            </tr>
-                            <tr th:each="conventie : ${conventiiNesemnate ?: new ArrayList()}">
-                                <td th:text="${conventie.student != null ? conventie.student.numeComplet : 'N/A'}">Nume Student</td>
-                                <td th:text="${conventie.companie != null ? conventie.companie.nume : 'N/A'}">Nume Companie</td>
-                                <td>
-                                    <span th:text="${conventie.dataInceput != null ? #dates.format(conventie.dataInceput, 'dd.MM.yyyy') : 'N/A'}"></span>
-                                    -
-                                    <span th:text="${conventie.dataSfarsit != null ? #dates.format(conventie.dataSfarsit, 'dd.MM.yyyy') : 'N/A'}"></span>
-                                </td>
-                                <td th:text="${conventie.dataIntocmirii != null ? #dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy') : 'N/A'}">Data</td>
-                                <td>
-                                    <span class="badge bg-warning">În așteptare</span>
-                                </td>
-                                <td>
-                                    <div class="btn-group">
-                                        <!-- Vizualizare HTML -->
-                                        <a th:href="@{'/prorector/conventie-export/' + ${conventie.id}}" 
-                                           class="btn btn-secondary btn-sm me-1" title="Vizualizează HTML">
-                                            <i class="fas fa-eye"></i>
-                                        </a>
-                                        
-                                        <!-- Export Word -->
-                                        <a th:href="@{'/prorector/conventie-export-word/' + ${conventie.id}}" 
-                                           class="btn btn-success btn-sm me-1" title="Descarcă Word">
-                                            <i class="fas fa-file-word"></i>
-                                        </a>
-                                        
-                                        <!-- Export PDF -->
-                                        <a th:href="@{'/prorector/conventie-export-pdf/' + ${conventie.id}}" 
-                                           class="btn btn-danger btn-sm me-1" title="Descarcă PDF">
-                                            <i class="fas fa-file-pdf"></i>
-                                        </a>
-                                        
-                                        <form th:action="@{'/prorector/semneaza-conventie/' + ${conventie.id}}" 
-                                              method="post" class="d-inline me-1">
-                                            <button type="submit" class="btn btn-success btn-sm" title="Semnează">
-                                                <i class="fas fa-signature"></i>
-                                            </button>
-                                        </form>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+        <!-- Updated section for Conventii in Asteptare in prorector/dashboard.html -->
+<div class="card mb-4">
+    <div class="card-header bg-warning bg-opacity-25">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-clock me-2"></i>Convenții în Așteptare de Semnare
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Companie</th>
+                        <th>Perioada</th>
+                        <th>Data Întocmirii</th>
+                        <th>Status</th>
+                        <th>Acțiuni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${conventiiNesemnate == null || conventiiNesemnate.empty}">
+                        <td colspan="6" class="text-center">Nu există convenții în așteptare.</td>
+                    </tr>
+                    <tr th:each="conventie : ${conventiiNesemnate ?: new ArrayList()}">
+                        <td th:text="${conventie.student != null ? conventie.student.numeComplet : 'N/A'}">Nume Student</td>
+                        <td th:text="${conventie.companie != null ? conventie.companie.nume : 'N/A'}">Nume Companie</td>
+                        <td>
+                            <span th:text="${conventie.dataInceput != null ? #dates.format(conventie.dataInceput, 'dd.MM.yyyy') : 'N/A'}"></span>
+                            -
+                            <span th:text="${conventie.dataSfarsit != null ? #dates.format(conventie.dataSfarsit, 'dd.MM.yyyy') : 'N/A'}"></span>
+                        </td>
+                        <td th:text="${conventie.dataIntocmirii != null ? #dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy') : 'N/A'}">Data</td>
+                        <td>
+                            <span class="badge bg-warning">În așteptare aprobare Prorector</span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <!-- Vizualizare HTML -->
+                                <a th:href="@{'/prorector/conventie-export/' + ${conventie.id}}" 
+                                   class="btn btn-secondary btn-sm me-1" title="Vizualizează HTML">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                <!-- Export Word -->
+                                <a th:href="@{'/prorector/conventie-export-word/' + ${conventie.id}}" 
+                                   class="btn btn-success btn-sm me-1" title="Descarcă Word">
+                                    <i class="fas fa-file-word"></i>
+                                </a>
+                                
+                                <!-- Export PDF -->
+                                <a th:href="@{'/prorector/conventie-export-pdf/' + ${conventie.id}}" 
+                                   class="btn btn-danger btn-sm me-1" title="Descarcă PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                                
+                                <form th:action="@{'/prorector/semneaza-conventie/' + ${conventie.id}}" 
+                                      method="post" class="d-inline me-1">
+                                    <button type="submit" class="btn btn-success btn-sm" title="Semnează">
+                                        <i class="fas fa-signature"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
+    </div>
+</div>
         
         <!-- Card Semnătură Digitală pentru prorector -->
 <div class="card mb-4">

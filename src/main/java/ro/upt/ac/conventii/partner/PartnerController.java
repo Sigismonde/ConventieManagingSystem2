@@ -565,11 +565,13 @@ public class PartnerController {
         document.add(paragraph);
     }
 
+ // În PartnerController
     private void addSignatureTable(Document document, Conventie conventie, Font font, Font boldFont, Authentication authentication) throws DocumentException {
         User user = (User) authentication.getPrincipal();
         Partner partner = partnerRepository.findByEmail(user.getEmail())
                 .orElseThrow(() -> new RuntimeException("Partner not found"));
         
+        // Primul tabel
         PdfPTable table = new PdfPTable(4);
         table.setWidthPercentage(100);
         float[] columnWidths = new float[]{2.5f, 5f, 5f, 5f};
@@ -613,17 +615,28 @@ public class PartnerController {
 
         PdfPCell dataUPT = new PdfPCell(new Paragraph(".....", font));
         
-        // Data pentru partener - setăm data actuală dacă statusul este APROBATA_PARTENER
+        // Data pentru partener
         PdfPCell dataPartener = new PdfPCell();
+        // Dacă partenerul vizualizează și e gata să aprobe sau a aprobat deja
         if (conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
+            conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
             conventie.getStatus() == ConventieStatus.APROBATA) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
-            dataPartener.addElement(new Paragraph(dateFormat.format(new java.util.Date()), font));
+            dataPartener.addElement(new Paragraph(dateFormat.format(conventie.getDataIntocmirii()), font));
         } else {
             dataPartener.addElement(new Paragraph(".....", font));
         }
         
-        PdfPCell dataPracticant = new PdfPCell(new Paragraph(".....", font));
+        // Data pentru student
+        PdfPCell dataPracticant = new PdfPCell();
+        if (conventie.getStatus() != ConventieStatus.NETRIMIS) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+            dataPracticant.addElement(new Paragraph(dateFormat.format(conventie.getDataIntocmirii()), font));
+        } else {
+            dataPracticant.addElement(new Paragraph(".....", font));
+        }
 
         dataUPT.setHorizontalAlignment(Element.ALIGN_CENTER);
         dataPartener.setHorizontalAlignment(Element.ALIGN_CENTER);
@@ -642,21 +655,35 @@ public class PartnerController {
         
         // Semnătura partenerului
         PdfPCell semnPartener = new PdfPCell();
-        if ((conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
-             conventie.getStatus() == ConventieStatus.APROBATA) && 
-             partner.getSemnatura() != null) {
-            try {
-                Image signature = Image.getInstance(partner.getSemnatura());
-                signature.scaleToFit(100, 50);
-                signature.setAlignment(Element.ALIGN_CENTER);
-                semnPartener.addElement(signature);
-            } catch (Exception e) {
-                semnPartener.addElement(new Paragraph(".....", font));
+        // Semnătura este afișată doar dacă statusul este corespunzător
+        if (conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
+            conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            
+            if (partner.getSemnatura() != null) {
+                try {
+                    Image signature = Image.getInstance(partner.getSemnatura());
+                    signature.scaleToFit(100, 50);
+                    signature.setAlignment(Element.ALIGN_CENTER);
+                    semnPartener.addElement(signature);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    semnPartener.addElement(new Paragraph("[Semnătură electronică]", font));
+                }
+            } else {
+                semnPartener.addElement(new Paragraph("[Semnătură electronică]", font));
             }
+        } else if (conventie.getStatus() == ConventieStatus.IN_ASTEPTARE) {
+            // Partenerul vede convenția și este gata să semneze
+            // Afișăm "Semnați aici" sau un mesaj similar
+            semnPartener.addElement(new Paragraph("(Veți semna electronic)", font));
         } else {
             semnPartener.addElement(new Paragraph(".....", font));
         }
         
+        // Semnătura studentului
         PdfPCell semnPracticant = new PdfPCell();
         if (conventie.getStudent().getSemnatura() != null) {
             try {
@@ -665,6 +692,7 @@ public class PartnerController {
                 signature.setAlignment(Element.ALIGN_CENTER);
                 semnPracticant.addElement(signature);
             } catch (Exception e) {
+                e.printStackTrace();
                 semnPracticant.addElement(new Paragraph(".....", font));
             }
         } else {
@@ -681,15 +709,87 @@ public class PartnerController {
         table.addCell(semnPracticant);
 
         document.add(table);
-        
+
         // Am luat la cunoștință
         Paragraph amLuat = new Paragraph("Am luat la cunoștință,", font);
         amLuat.setSpacingBefore(20);
         amLuat.setSpacingAfter(20);
         document.add(amLuat);
         
-        // Al doilea tabel - similar cu cel din metodele existente
-        // ...
+        document.add(Chunk.NEWLINE);
+
+        // Al doilea tabel - Cadru didactic și Tutore 
+        // Notă: Chiar dacă e Partner Controller, afișăm structura completă a documentului
+        PdfPTable secondTable = new PdfPTable(3);
+        secondTable.setWidthPercentage(100);
+        float[] secondWidths = new float[]{2.5f, 5f, 5f};
+        secondTable.setWidths(secondWidths);
+
+        // Header al doilea tabel
+        PdfPCell emptyHeader2 = new PdfPCell(new Paragraph(""));
+        PdfPCell supervizorHeader = new PdfPCell(new Paragraph("Cadru didactic supervizor", boldFont));
+        PdfPCell tutoreHeader = new PdfPCell(new Paragraph("Tutore", boldFont));
+
+        supervizorHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+        tutoreHeader.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        secondTable.addCell(emptyHeader2);
+        secondTable.addCell(supervizorHeader);
+        secondTable.addCell(tutoreHeader);
+
+        // Nume și prenume în al doilea tabel
+        PdfPCell numeLabel2 = new PdfPCell(new Paragraph("Nume și prenume", boldFont));
+        numeLabel2.setHorizontalAlignment(Element.ALIGN_LEFT);
+        PdfPCell numeCadruDidactic = new PdfPCell(new Paragraph(conventie.getCadruDidactic().getNumeComplet(), font));
+        PdfPCell numeTutore = new PdfPCell(new Paragraph(conventie.getTutore().getNume() + " " + conventie.getTutore().getPrenume(), font));
+
+        numeCadruDidactic.setHorizontalAlignment(Element.ALIGN_CENTER);
+        numeTutore.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        secondTable.addCell(numeLabel2);
+        secondTable.addCell(numeCadruDidactic);
+        secondTable.addCell(numeTutore);
+
+        // Funcția în al doilea tabel
+        PdfPCell functieLabel = new PdfPCell(new Paragraph("Funcția", boldFont));
+        functieLabel.setHorizontalAlignment(Element.ALIGN_LEFT);
+        PdfPCell functieCadruDidactic = new PdfPCell(new Paragraph(conventie.getCadruDidactic().getFunctie(), font));
+        PdfPCell functieTutore = new PdfPCell(new Paragraph(conventie.getTutore().getFunctie(), font));
+
+        functieCadruDidactic.setHorizontalAlignment(Element.ALIGN_CENTER);
+        functieTutore.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        secondTable.addCell(functieLabel);
+        secondTable.addCell(functieCadruDidactic);
+        secondTable.addCell(functieTutore);
+
+        // Data în al doilea tabel
+        PdfPCell dataLabel2 = new PdfPCell(new Paragraph("Data", boldFont));
+        dataLabel2.setHorizontalAlignment(Element.ALIGN_LEFT);
+        PdfPCell dataCadruDidactic = new PdfPCell(new Paragraph(".....", font));
+        PdfPCell dataTutore = new PdfPCell(new Paragraph(".....", font));
+
+        dataCadruDidactic.setHorizontalAlignment(Element.ALIGN_CENTER);
+        dataTutore.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        secondTable.addCell(dataLabel2);
+        secondTable.addCell(dataCadruDidactic);
+        secondTable.addCell(dataTutore);
+
+        // Semnătura în al doilea tabel
+        PdfPCell semnLabel2 = new PdfPCell(new Paragraph("Semnătura", boldFont));
+        semnLabel2.setHorizontalAlignment(Element.ALIGN_LEFT);
+        PdfPCell semnCadruDidactic = new PdfPCell(new Paragraph(".....", font));
+        PdfPCell semnTutore = new PdfPCell(new Paragraph(".....", font));
+
+        semnCadruDidactic.setHorizontalAlignment(Element.ALIGN_CENTER);
+        semnTutore.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+        secondTable.addCell(semnLabel2);
+        secondTable.addCell(semnCadruDidactic);
+        secondTable.addCell(semnTutore);
+
+        document.add(secondTable);
     }
     // Export Word
     @GetMapping("/conventie-export-word/{id}")

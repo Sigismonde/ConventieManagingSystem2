@@ -67,12 +67,12 @@ public class ProrectorController {
         model.addAttribute("user", user);
 
         try {
-            // Inițializare liste goale pentru a evita null
-            // Modificare: Filtram doar conventiile in asteptare (nu includem NETRIMIS)
-            List<Conventie> conventiiNesemnate = conventieRepository.findByStatus(ConventieStatus.IN_ASTEPTARE);
+            // Initialize empty lists to avoid null
+            // Modified: Filter conventions with the new status IN_ASTEPTARE_PRORECTOR
+            List<Conventie> conventiiNesemnate = conventieRepository.findByStatus(ConventieStatus.IN_ASTEPTARE_PRORECTOR);
             
-            // Limitare la ultimele 5 convenții semnate
-            // Utilizăm PageRequest.of(0, 5) pentru a obține primele 5 rezultate
+            // Limit to the last 5 signed conventions
+            // Use PageRequest.of(0, 5) to get the first 5 results
             Pageable topFive = PageRequest.of(0, 5);
             List<Conventie> conventiiSemnate = conventieRepository.findTop5ByStatusOrderByDataIntocmiriiDesc(
                 ConventieStatus.APROBATA, topFive);
@@ -80,15 +80,15 @@ public class ProrectorController {
             if (conventiiNesemnate == null) conventiiNesemnate = new ArrayList<>();
             if (conventiiSemnate == null) conventiiSemnate = new ArrayList<>();
             
-            // Adăugare în model
+            // Add to model
             model.addAttribute("conventiiNesemnate", conventiiNesemnate);
             model.addAttribute("conventiiSemnate", conventiiSemnate);
         } catch (Exception e) {
-            // În caz de eroare, inițializăm cu liste goale
+            // In case of error, initialize with empty lists
             model.addAttribute("conventiiNesemnate", new ArrayList<>());
             model.addAttribute("conventiiSemnate", new ArrayList<>());
-            // Log eroare
-            System.err.println("Eroare la încărcarea datelor: " + e.getMessage());
+            // Log error
+            System.err.println("Error loading data: " + e.getMessage());
         }
         
         return "prorector/dashboard";
@@ -131,23 +131,42 @@ public class ProrectorController {
     }
 
     // Semnare convenție
+ // Updated semneazaConventie method in ProrectorController
     @PostMapping("/semneaza-conventie/{id}")
-    public String semneazaConventie(@PathVariable("id") int id, Authentication authentication) {
+    public String semneazaConventie(@PathVariable("id") int id, Authentication authentication, RedirectAttributes redirectAttributes) {
         try {
-            // Găsim prorectorul care aprobă
+            // Get the prorector who approves
             User user = (User) authentication.getPrincipal();
             Prorector prorector = prorectorRepository.findByEmail(user.getEmail());
+            
+            // Check if prorector has an uploaded signature
+            if (prorector == null || prorector.getSemnatura() == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu puteți aproba convenția fără o semnătură încărcată. Vă rugăm să încărcați mai întâi semnătura în panoul de control.");
+                return "redirect:/prorector/conventii";
+            }
 
-            // Găsim convenția
+            // Find the convention
             Conventie conventie = conventieRepository.findById(id);
             if (conventie != null) {
-                // Setăm statusul și data aprobării
+                // Check if the convention is in the correct state for approval
+                if (conventie.getStatus() != ConventieStatus.IN_ASTEPTARE_PRORECTOR) {
+                    redirectAttributes.addFlashAttribute("errorMessage", 
+                        "Această convenție nu este în stadiul de așteptare aprobare de la prorector!");
+                    return "redirect:/prorector/conventii";
+                }
+                
+                // Update status and save
                 conventie.setStatus(ConventieStatus.APROBATA);
                 conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
                 conventieRepository.save(conventie);
+                
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "Convenția a fost aprobată cu succes și semnată digital!");
             }
         } catch (Exception e) {
-            System.err.println("Eroare la semnarea convenției: " + e.getMessage());
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la semnarea convenției: " + e.getMessage());
         }
         
         return "redirect:/prorector/conventii";
@@ -160,19 +179,19 @@ public class ProrectorController {
             model.addAttribute("user", user);
         }
         
-        // Modificare: filtrăm doar convențiile relevante pentru prorector (trimise și aprobate)
-        // Excludem convențiile cu status NETRIMIS
-        List<Conventie> conventiiInAsteptare = conventieRepository.findByStatus(ConventieStatus.IN_ASTEPTARE);
+        // Modified: Filter only conventions relevant for prorector (awaiting prorector approval and approved)
+        // Exclude NETRIMIS conventions
+        List<Conventie> conventiiInAsteptare = conventieRepository.findByStatus(ConventieStatus.IN_ASTEPTARE_PRORECTOR);
         List<Conventie> conventiiAprobate = conventieRepository.findByStatus(ConventieStatus.APROBATA);
         
         List<Conventie> conventiiRespinse = conventieRepository.findByStatus(ConventieStatus.RESPINSA);
         
-        // Inițializăm cu liste goale dacă e cazul
+        // Initialize with empty lists if needed
         if (conventiiInAsteptare == null) conventiiInAsteptare = new ArrayList<>();
         if (conventiiAprobate == null) conventiiAprobate = new ArrayList<>(); 
         if (conventiiRespinse == null) conventiiRespinse = new ArrayList<>();
         
-        // Combinăm convențiile relevante (exclude NETRIMIS)
+        // Combine relevant conventions (exclude NETRIMIS)
         List<Conventie> conventiiPentruProrector = new ArrayList<>();
         conventiiPentruProrector.addAll(conventiiInAsteptare);
         conventiiPentruProrector.addAll(conventiiAprobate);

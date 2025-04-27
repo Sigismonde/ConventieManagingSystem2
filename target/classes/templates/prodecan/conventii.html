@@ -100,83 +100,106 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <!-- Convenții în așteptare -->
-        <div class="card mb-4">
-            <div class="card-header bg-warning bg-opacity-25">
-                <h5 class="card-title mb-0">
-                    <i class="fas fa-clock me-2"></i>Convenții în Așteptare
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Student</th>
-                                <th>Companie</th>
-                                <th>Perioada</th>
-                                <th>Data Întocmirii</th>
-                                <th>Cadru Didactic</th>
-                                <th>Acțiuni</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:if="${conventiiNesemnate == null || conventiiNesemnate.empty}">
-                                <td colspan="6" class="text-center">Nu există convenții în așteptare.</td>
-                            </tr>
-                            <tr th:each="conventie : ${conventiiNesemnate}">
-                                <td th:text="${conventie.student.numeComplet}">Nume Student</td>
-                                <td th:text="${conventie.companie.nume}">Nume Companie</td>
-                                <td>
-                                    <span th:text="${#dates.format(conventie.dataInceput, 'dd.MM.yyyy')}"></span> - 
-                                    <span th:text="${#dates.format(conventie.dataSfarsit, 'dd.MM.yyyy')}"></span>
-                                </td>
-                                <td th:text="${#dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy')}">Data Întocmirii</td>
-                                <td th:text="${conventie.cadruDidactic.numeComplet}">Cadru Didactic</td>
-                                <td>
-    <div class="btn-group">
-        <!-- Vizualizare -->
-        <a th:href="@{'/conventie-export/' + ${conventie.id}}" 
-           class="btn btn-secondary btn-sm me-1" title="Vizualizează">
-            <i class="fas fa-eye"></i>
-        </a>
-        
-        <!-- Word -->
-    <a th:href="@{'/prodecan/conventie-export-word/' + ${conventie.id}}" 
-       class="btn btn-success btn-sm me-1"
-       title="Descarcă Word">
-        <i class="fas fa-file-word"></i>
-    </a>
-
-    <!-- PDF -->
-    <a th:href="@{'/prodecan/conventie-export-pdf/' + ${conventie.id}}" 
-       class="btn btn-danger btn-sm me-1"
-       title="Descarcă PDF">
-        <i class="fas fa-file-pdf"></i>
-    </a>
-
-        <!-- Butoanele de aprobare/respingere -->
-        <form th:action="@{'/prodecan/conventie/aproba/' + ${conventie.id}}" 
-              method="post" class="d-inline me-1">
-            <button type="submit" class="btn btn-success btn-sm" title="Semnează">
-                <i class="fas fa-signature"></i>
-            </button>
-        </form>
-        <form th:action="@{'/prodecan/conventie/respinge/' + ${conventie.id}}" 
-              method="post" class="d-inline">
-            <button type="submit" class="btn btn-danger btn-sm" title="Respinge"
-                    onclick="return confirm('Sigur doriți să respingeți această convenție?')">
-                <i class="fas fa-times"></i>
-            </button>
-        </form>
+        <!-- Updated section for processing conventions in prodecan/conventii.html -->
+<div class="card mb-4">
+    <div class="card-header bg-warning bg-opacity-25">
+        <h5 class="card-title mb-0">
+            <i class="fas fa-clock me-2"></i>Convenții în Așteptare
+        </h5>
     </div>
-</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Student</th>
+                        <th>Companie</th>
+                        <th>Perioada</th>
+                        <th>Data Întocmirii</th>
+                        <th>Cadru Didactic</th>
+                        <th>Status</th>
+                        <th>Acțiuni</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:if="${conventiiNesemnate == null || conventiiNesemnate.empty}">
+                        <td colspan="7" class="text-center">Nu există convenții în așteptare.</td>
+                    </tr>
+                    <tr th:each="conventie : ${conventiiNesemnate}">
+                        <td th:text="${conventie.student.numeComplet}">Nume Student</td>
+                        <td th:text="${conventie.companie.nume}">Nume Companie</td>
+                        <td>
+                            <span th:text="${#dates.format(conventie.dataInceput, 'dd.MM.yyyy')}"></span> - 
+                            <span th:text="${#dates.format(conventie.dataSfarsit, 'dd.MM.yyyy')}"></span>
+                        </td>
+                        <td th:text="${#dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy')}">Data Întocmirii</td>
+                        <td th:text="${conventie.cadruDidactic.numeComplet}">Cadru Didactic</td>
+                        <td>
+                            <span th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE}" class="badge bg-warning">
+                                În așteptare
+                            </span>
+                            <span th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE_PRODECAN}" class="badge bg-info">
+                                În așteptare Prodecan
+                            </span>
+                            <span th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_PARTENER}" class="badge bg-primary">
+                                Aprobată de Partener
+                            </span>
+                            <span th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).TRIMISA_TUTORE}" class="badge bg-secondary">
+                                Trimisă la Tutore
+                            </span>
+                            <span th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_TUTORE}" class="badge bg-success">
+                                Aprobată de Tutore
+                            </span>
+                            <span th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE_PRORECTOR}" class="badge bg-info">
+                                Trimisă la Prorector
+                            </span>
+                        </td>
+                        <td>
+                            <div class="btn-group">
+                                <!-- Vizualizare -->
+                                <a th:href="@{'/conventie-export/' + ${conventie.id}}" 
+                                   class="btn btn-secondary btn-sm me-1" title="Vizualizează">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                
+                                <!-- Word -->
+                                <a th:href="@{'/prodecan/conventie-export-word/' + ${conventie.id}}" 
+                                   class="btn btn-success btn-sm me-1"
+                                   title="Descarcă Word">
+                                    <i class="fas fa-file-word"></i>
+                                </a>
+
+                                <!-- PDF -->
+                                <a th:href="@{'/prodecan/conventie-export-pdf/' + ${conventie.id}}" 
+                                   class="btn btn-danger btn-sm me-1"
+                                   title="Descarcă PDF">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+
+                                <!-- Butoanele de aprobare/respingere -->
+                                <!-- Doar afișează butonul de aprobare pentru convenții care nu sunt deja trimise la prorector -->
+                                <form th:if="${conventie.status != T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE_PRORECTOR}"
+                                      th:action="@{'/prodecan/conventie/aproba/' + ${conventie.id}}" 
+                                      method="post" class="d-inline me-1">
+                                    <button type="submit" class="btn btn-success btn-sm" title="Semnează">
+                                        <i class="fas fa-signature"></i>
+                                    </button>
+                                </form>
+                                <form th:action="@{'/prodecan/conventie/respinge/' + ${conventie.id}}" 
+                                      method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-danger btn-sm" title="Respinge"
+                                            onclick="return confirm('Sigur doriți să respingeți această convenție?')">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
+    </div>
+</div>
 
         <!-- Convenții semnate -->
         <div class="card">
