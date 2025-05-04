@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Formular Tutore - Prodecan</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/prodecan/dashboard">
+                <i class="fas fa-university me-2"></i>Portal Convenții - Prodecan
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-tie me-2"></i>
+                    <span th:text="${tutore.id != null ? 'Editare Tutore' : 'Adăugare Tutore Nou'}">Tutore</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{${tutore.id != null ? '/prodecan/management/tutori/edit/' + tutore.id : '/prodecan/management/tutori/create'}}"
+                      th:object="${tutore}" method="post">
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="nume" class="form-label">Nume</label>
+                            <input type="text" class="form-control" id="nume" th:field="*{nume}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="prenume" class="form-label">Prenume</label>
+                            <input type="text" class="form-control" id="prenume" th:field="*{prenume}" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="functie" class="form-label">Funcție</label>
+                            <input type="text" class="form-control" id="functie" th:field="*{functie}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="companie" class="form-label">Companie</label>
+                            <select class="form-select" id="companie" th:field="*{companie}" required>
+                                <option value="">Selectați compania</option>
+                                <option th:each="companie : ${companii}"
+                                        th:value="${companie.id}"
+                                        th:text="${companie.nume}">
+                                    Nume Companie
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" class="form-control" id="email" 
+                                   th:field="*{email}" 
+                                   th:readonly="${tutore.id != null}"
+                                   required>
+                            <small class="text-muted" th:if="${tutore.id != null}">
+                                Email-ul nu poate fi modificat pentru a menține integritatea contului de utilizator.
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="telefon" class="form-label">Telefon</label>
+                            <input type="text" class="form-control" id="telefon" th:field="*{telefon}" required>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info" th:if="${tutore.id == null}">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Un cont de utilizator va fi creat automat pentru acest tutore. Parola generată va fi afișată după salvare.
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Salvează
+                        </button>
+                        <a href="/prodecan/management/tutori" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Înapoi
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

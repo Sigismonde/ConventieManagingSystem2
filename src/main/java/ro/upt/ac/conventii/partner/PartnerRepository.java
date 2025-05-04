@@ -11,6 +11,7 @@ import ro.upt.ac.conventii.companie.Companie;
 @Repository
 public interface PartnerRepository extends JpaRepository<Partner, Integer> {
     Partner findById(int id);
+//    Optional<Partner> findByEmail(String email);
     Optional<Partner> findByEmail(String email);
     List<Partner> findByCompanie(Companie companie);
     List<Partner> findByCompanieId(int companieId);

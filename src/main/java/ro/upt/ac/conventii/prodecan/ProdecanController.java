@@ -2214,5 +2214,390 @@ public class ProdecanController {
         return html.toString();
     }
     
-    
+ // În ProdecanController, adaugă aceste metode pentru managementul partenerilor
+
+ // Modifică metoda pentru listarea partenerilor
+    @GetMapping("/management/partners")
+    public String listPartners(Model model, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        model.addAttribute("user", user);
+        
+        try {
+            List<Partner> partners = partnerRepository.findAll();
+            model.addAttribute("partners", partners != null ? partners : new ArrayList<>());
+        } catch (Exception e) {
+            System.err.println("Eroare la încărcarea partenerilor: " + e.getMessage());
+            model.addAttribute("partners", new ArrayList<>());
+            model.addAttribute("errorMessage", "A apărut o eroare la încărcarea partenerilor: " + e.getMessage());
+        }
+        return "prodecan/management/partners";
+    }
+
+    // Modifică metoda pentru afișarea formularului de creare
+    @GetMapping("/management/create")
+    public String showCreatePartnerForm(Model model, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        model.addAttribute("user", user);
+        model.addAttribute("partner", new Partner());
+        model.addAttribute("companii", companieRepository.findAll());
+        return "prodecan/management/create";
+    }
+
+    @PostMapping("/management/partners/create")
+    public String createPartner(@ModelAttribute Partner partner, RedirectAttributes redirectAttributes) {
+        try {
+            // Verifică dacă email-ul este valid
+            if (partner.getEmail() == null || partner.getEmail().trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Email-ul este obligatoriu!");
+                return "redirect:/prodecan/management/partners/create";
+            }
+            
+            // Validăm email-ul
+            if (!ValidationUtils.isValidEmail(partner.getEmail())) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Adresa de email nu este validă!");
+                return "redirect:/prodecan/management/partners/create";
+            }
+            
+            // Verificăm dacă există deja un utilizator cu acest email
+            User existingUser = userRepository.findByEmail(partner.getEmail());
+            if (existingUser != null) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Există deja un utilizator cu această adresă de email!");
+                return "redirect:/prodecan/management/partners/create";
+            }
+            
+            // Salvăm partenerul
+            Partner savedPartner = partnerRepository.save(partner);
+            
+            // Creăm contul de utilizator
+            String tempPassword = passwordGeneratorService.generateRandomPassword();
+            User userPartner = new User();
+            userPartner.setEmail(savedPartner.getEmail());
+            userPartner.setNume(savedPartner.getNume());
+            userPartner.setPrenume(savedPartner.getPrenume());
+            userPartner.setPassword(passwordEncoder.encode(tempPassword));
+            userPartner.setRole("ROLE_PARTNER");
+            userPartner.setEnabled(true);
+            userPartner.setFirstLogin(true);
+            
+            userRepository.save(userPartner);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Partener creat cu succes!\n" +
+                "----------------------------------------\n" +
+                "Email: " + savedPartner.getEmail() + "\n" +
+                "PAROLA TEMPORARĂ: " + tempPassword + "\n" +
+                "----------------------------------------\n" +
+                "IMPORTANT: Salvați această parolă!");
+            
+            return "redirect:/prodecan/management/partners";
+        } catch (Exception e) {
+            e.printStackTrace(); // Pentru debugging
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la crearea partenerului: " + e.getMessage());
+            return "redirect:/prodecan/management/partners/create";
+        }
+    }
+
+    // Modifică metoda pentru editarea partenerului
+    @GetMapping("/management/partners/edit/{id}")
+    public String showEditPartnerForm(@PathVariable int id, Model model, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        model.addAttribute("user", user);
+        
+        Partner partner = partnerRepository.findById(id);
+        if (partner == null) {
+            return "redirect:/prodecan/management/partners";
+        }
+        
+        model.addAttribute("partner", partner);
+        model.addAttribute("companii", companieRepository.findAll());
+        return "prodecan/management/partner-form";
+    }
+
+    @PostMapping("/management/partners/edit/{id}")
+    public String updatePartner(@PathVariable int id, @ModelAttribute Partner partner, RedirectAttributes redirectAttributes) {
+        try {
+            Partner existingPartner = partnerRepository.findById(id);
+            if (existingPartner == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Partenerul nu a fost găsit!");
+                return "redirect:/prodecan/management/partners";
+            }
+            
+            // Păstrăm email-ul original și ID-ul
+            partner.setId(id);
+            partner.setEmail(existingPartner.getEmail());
+            
+            // Salvăm partenerul actualizat
+            partnerRepository.save(partner);
+            
+            // Actualizăm și contul de utilizator asociat (dar nu email-ul)
+            User userPartner = userRepository.findByEmail(existingPartner.getEmail());
+            if (userPartner != null) {
+                userPartner.setNume(partner.getNume());
+                userPartner.setPrenume(partner.getPrenume());
+                userRepository.save(userPartner);
+            }
+            
+            redirectAttributes.addFlashAttribute("successMessage", "Partener actualizat cu succes!");
+            return "redirect:/prodecan/management/partners";
+            
+        } catch (Exception e) {
+            e.printStackTrace(); // Pentru debugging
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la actualizarea partenerului: " + e.getMessage());
+            return "redirect:/prodecan/management/partners/edit/" + id;
+        }
+    }
+
+    @PostMapping("/management/partners/reset-password/{id}")
+    public String resetPartnerPassword(@PathVariable int id, RedirectAttributes redirectAttributes) {
+        try {
+            Partner partner = partnerRepository.findById(id);
+            if (partner != null) {
+                User userPartner = userRepository.findByEmail(partner.getEmail());
+                if (userPartner != null) {
+                    String newPassword = passwordGeneratorService.generateRandomPassword();
+                    userPartner.setPassword(passwordEncoder.encode(newPassword));
+                    userRepository.save(userPartner);
+                    
+                    redirectAttributes.addFlashAttribute("successMessage", 
+                        "Parolă resetată cu succes!\n" +
+                        "----------------------------------------\n" +
+                        "Partener: " + partner.getNume() + " " + partner.getPrenume() + "\n" +
+                        "Email: " + partner.getEmail() + "\n" +
+                        "NOUA PAROLĂ: " + newPassword + "\n" +
+                        "----------------------------------------\n" +
+                        "IMPORTANT: Salvați această parolă!");
+                }
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la resetarea parolei: " + e.getMessage());
+        }
+        return "redirect:/prodecan/management/partners";
+    }
+
+    @GetMapping("/management/partners/delete/{id}")
+    public String deletePartner(@PathVariable int id, RedirectAttributes redirectAttributes) {
+        try {
+            Partner partner = partnerRepository.findById(id);
+            if (partner == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Partenerul nu a fost găsit!");
+                return "redirect:/prodecan/management/partners";
+            }
+            
+            // Verificăm dacă există convenții asociate
+            List<Conventie> conventiiAsociate = conventieRepository.findByCompanieId(partner.getCompanie().getId());
+            if (!conventiiAsociate.isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu se poate șterge partenerul deoarece există convenții asociate companiei!");
+                return "redirect:/prodecan/management/partners";
+            }
+            
+            // Ștergem contul de utilizator asociat
+            User userPartner = userRepository.findByEmail(partner.getEmail());
+            if (userPartner != null) {
+                userRepository.delete(userPartner);
+            }
+            
+            // Ștergem partenerul
+            partnerRepository.delete(partner);
+            redirectAttributes.addFlashAttribute("successMessage", "Partenerul a fost șters cu succes!");
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "A apărut o eroare la ștergerea partenerului: " + e.getMessage());
+        }
+        return "redirect:/prodecan/management/partners";
+    }
+
+    // Metode similare pentru edit, delete și reset-password
+
+    // Acum adaugă metode pentru managementul tutorilor
+
+    @GetMapping("/management/tutori")
+    public String listTutori(Model model, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        model.addAttribute("user", user);
+        
+        try {
+            List<Tutore> tutori = tutoreRepository.findAll();
+            model.addAttribute("tutori", tutori != null ? tutori : new ArrayList<>());
+        } catch (Exception e) {
+            System.err.println("Eroare la încărcarea tutorilor: " + e.getMessage());
+            model.addAttribute("tutori", new ArrayList<>());
+            model.addAttribute("errorMessage", "A apărut o eroare la încărcarea tutorilor: " + e.getMessage());
+        }
+        return "prodecan/management/tutori";
+    }
+
+    @GetMapping("/management/tutori/create")
+    public String showCreateTutoreForm(Model model, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        model.addAttribute("user", user);
+        model.addAttribute("tutore", new Tutore());
+        model.addAttribute("companii", companieRepository.findAll());
+        return "prodecan/management/tutore-form";
+    }
+
+    @PostMapping("/management/tutori/create")
+    public String createTutore(@ModelAttribute Tutore tutore, RedirectAttributes redirectAttributes) {
+        try {
+            // Validăm email-ul
+            if (!ValidationUtils.isValidEmail(tutore.getEmail())) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Adresa de email nu este validă!");
+                return "redirect:/prodecan/management/tutori/create";
+            }
+            
+            // Salvăm tutorele
+            tutoreRepository.save(tutore);
+            
+            // Creăm contul de utilizator
+            String tempPassword = passwordGeneratorService.generateRandomPassword();
+            User userTutore = new User();
+            userTutore.setEmail(tutore.getEmail());
+            userTutore.setNume(tutore.getNume());
+            userTutore.setPrenume(tutore.getPrenume());
+            userTutore.setPassword(passwordEncoder.encode(tempPassword));
+            userTutore.setRole("ROLE_TUTORE");
+            userTutore.setEnabled(true);
+            userTutore.setFirstLogin(true);
+            
+            userRepository.save(userTutore);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Tutore creat cu succes!\n" +
+                "----------------------------------------\n" +
+                "Email: " + tutore.getEmail() + "\n" +
+                "PAROLA TEMPORARĂ: " + tempPassword + "\n" +
+                "----------------------------------------\n" +
+                "IMPORTANT: Salvați această parolă!");
+            
+            return "redirect:/prodecan/management/tutori";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la crearea tutorelui: " + e.getMessage());
+            return "redirect:/prodecan/management/tutori/create";
+        }
+    }
+
+    @GetMapping("/management/tutori/edit/{id}")
+    public String showEditTutoreForm(@PathVariable int id, Model model, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        model.addAttribute("user", user);
+        
+        Tutore tutore = tutoreRepository.findById(id);
+        if (tutore == null) {
+            return "redirect:/prodecan/management/tutori";
+        }
+        
+        model.addAttribute("tutore", tutore);
+        model.addAttribute("companii", companieRepository.findAll());
+        return "prodecan/management/tutore-form";
+    }
+
+    @PostMapping("/management/tutori/edit/{id}")
+    public String updateTutore(@PathVariable int id, @ModelAttribute Tutore tutore, RedirectAttributes redirectAttributes) {
+        try {
+            Tutore existingTutore = tutoreRepository.findById(id);
+            if (existingTutore == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Tutorele nu a fost găsit!");
+                return "redirect:/prodecan/management/tutori";
+            }
+            
+            // Salvăm email-ul original
+            String originalEmail = existingTutore.getEmail();
+            
+            // Actualizăm tutorele dar păstrăm email-ul neschimbat pentru a menține integritatea contului
+            existingTutore.setNume(tutore.getNume());
+            existingTutore.setPrenume(tutore.getPrenume());
+            existingTutore.setFunctie(tutore.getFunctie());
+            existingTutore.setTelefon(tutore.getTelefon());
+            existingTutore.setCompanie(tutore.getCompanie());
+            
+            tutoreRepository.save(existingTutore);
+            
+            // Actualizăm și contul de utilizator asociat
+            User userTutore = userRepository.findByEmail(originalEmail);
+            if (userTutore != null) {
+                userTutore.setNume(tutore.getNume());
+                userTutore.setPrenume(tutore.getPrenume());
+                userRepository.save(userTutore);
+            }
+            
+            redirectAttributes.addFlashAttribute("successMessage", "Tutore actualizat cu succes!");
+            return "redirect:/prodecan/management/tutori";
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la actualizarea tutorelui: " + e.getMessage());
+            return "redirect:/prodecan/management/tutori/edit/" + id;
+        }
+    }
+
+    @PostMapping("/management/tutori/reset-password/{id}")
+    public String resetTutorePassword(@PathVariable int id, RedirectAttributes redirectAttributes) {
+        try {
+            Tutore tutore = tutoreRepository.findById(id);
+            if (tutore != null) {
+                User userTutore = userRepository.findByEmail(tutore.getEmail());
+                if (userTutore != null) {
+                    String newPassword = passwordGeneratorService.generateRandomPassword();
+                    userTutore.setPassword(passwordEncoder.encode(newPassword));
+                    userRepository.save(userTutore);
+                    
+                    redirectAttributes.addFlashAttribute("successMessage", 
+                        "Parolă resetată cu succes!\n" +
+                        "----------------------------------------\n" +
+                        "Tutore: " + tutore.getNume() + " " + tutore.getPrenume() + "\n" +
+                        "Email: " + tutore.getEmail() + "\n" +
+                        "NOUA PAROLĂ: " + newPassword + "\n" +
+                        "----------------------------------------\n" +
+                        "IMPORTANT: Salvați această parolă!");
+                }
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la resetarea parolei: " + e.getMessage());
+        }
+        return "redirect:/prodecan/management/tutori";
+    }
+
+    @GetMapping("/management/tutori/delete/{id}")
+    public String deleteTutore(@PathVariable int id, RedirectAttributes redirectAttributes) {
+        try {
+            Tutore tutore = tutoreRepository.findById(id);
+            if (tutore == null) {
+                redirectAttributes.addFlashAttribute("errorMessage", "Tutorele nu a fost găsit!");
+                return "redirect:/prodecan/management/tutori";
+            }
+            
+            // Verificăm dacă există convenții asociate
+            List<Conventie> conventiiAsociate = conventieRepository.findByCompanieId(tutore.getCompanie().getId());
+            if (!conventiiAsociate.isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu se poate șterge tutorele deoarece există convenții asociate companiei!");
+                return "redirect:/prodecan/management/tutori";
+            }
+            
+            // Ștergem contul de utilizator asociat
+            User userTutore = userRepository.findByEmail(tutore.getEmail());
+            if (userTutore != null) {
+                userRepository.delete(userTutore);
+            }
+            
+            // Ștergem tutorele
+            tutoreRepository.delete(tutore);
+            redirectAttributes.addFlashAttribute("successMessage", "Tutorele a fost șters cu succes!");
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "A apărut o eroare la ștergerea tutorelui: " + e.getMessage());
+        }
+        return "redirect:/prodecan/management/tutori";
+    }
 }
