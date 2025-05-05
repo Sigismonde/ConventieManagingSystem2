@@ -63,6 +63,7 @@ import ro.upt.ac.conventii.conventie.ConventieRepository;
 import ro.upt.ac.conventii.conventie.ConventieStatus;
 import ro.upt.ac.conventii.partner.Partner;
 import ro.upt.ac.conventii.partner.PartnerRepository;
+import ro.upt.ac.conventii.partner.PartnerService;
 import ro.upt.ac.conventii.security.User;
 import ro.upt.ac.conventii.security.UserRepository;
 import ro.upt.ac.conventii.service.PasswordGeneratorService;
@@ -95,6 +96,9 @@ public class ProdecanController {
     
     @Autowired
     private PartnerRepository partnerRepository; 
+    
+    @Autowired
+    private PartnerService partnerService;
     
     @Autowired
     private TutoreRepository tutoreRepository; 
@@ -182,6 +186,47 @@ public class ProdecanController {
             model.addAttribute("studenti", new ArrayList<>());
         }
         return "prodecan/studenti";
+    }
+    
+    @GetMapping("/management/partners/debug")
+    @ResponseBody
+    public String debugPartners() {
+        StringBuilder debug = new StringBuilder();
+        
+        try {
+            // Verificăm conexiunea la baza de date
+            debug.append("=== DEBUG INFO ===\n");
+            
+            // Numărul total de parteneri
+            long count = partnerRepository.count();
+            debug.append("Total parteneri în baza de date: ").append(count).append("\n\n");
+            
+            // Listăm toți partenerii folosind query nativ
+            debug.append("Parteneri (query nativ):\n");
+            List<Partner> nativePartners = partnerRepository.findAllNative();
+            for (Partner p : nativePartners) {
+                debug.append("ID=").append(p.getId())
+                     .append(", Nume=").append(p.getNume())
+                     .append(", Email=").append(p.getEmail())
+                     .append("\n");
+            }
+            
+            debug.append("\nParteneri (JPA findAll):\n");
+            List<Partner> partners = partnerRepository.findAll();
+            for (Partner p : partners) {
+                debug.append("ID=").append(p.getId())
+                     .append(", Nume=").append(p.getNume())
+                     .append(", Email=").append(p.getEmail())
+                     .append(", Companie=").append(p.getCompanie() != null ? p.getCompanie().getNume() : "NULL")
+                     .append("\n");
+            }
+            
+        } catch (Exception e) {
+            debug.append("EROARE: ").append(e.getMessage()).append("\n");
+            e.printStackTrace();
+        }
+        
+        return debug.toString();
     }
     // Management Studenți
     @GetMapping("/student-create")
@@ -2224,36 +2269,41 @@ public class ProdecanController {
         
         try {
             List<Partner> partners = partnerRepository.findAll();
-            model.addAttribute("partners", partners != null ? partners : new ArrayList<>());
+            System.out.println("DEBUG: Total parteneri găsiți: " + partners.size());
+            
+            // Debug detaliat pentru fiecare partener
+            for (Partner partner : partners) {
+                System.out.println("Partner ID=" + partner.getId() + 
+                                 ", Nume=" + partner.getNume() + 
+                                 ", Email=" + partner.getEmail() + 
+                                 ", Companie=" + (partner.getCompanie() != null ? partner.getCompanie().getNume() : "NULL"));
+            }
+            
+            model.addAttribute("partners", partners);
         } catch (Exception e) {
-            System.err.println("Eroare la încărcarea partenerilor: " + e.getMessage());
+            System.err.println("EROARE la încărcarea partenerilor: " + e.getMessage());
+            e.printStackTrace();
             model.addAttribute("partners", new ArrayList<>());
             model.addAttribute("errorMessage", "A apărut o eroare la încărcarea partenerilor: " + e.getMessage());
         }
+        
         return "prodecan/management/partners";
     }
-
     // Modifică metoda pentru afișarea formularului de creare
-    @GetMapping("/management/create")
+    @GetMapping("/management/partners/create")
     public String showCreatePartnerForm(Model model, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         model.addAttribute("user", user);
+        
         model.addAttribute("partner", new Partner());
         model.addAttribute("companii", companieRepository.findAll());
-        return "prodecan/management/create";
+        
+        return "prodecan/management/create"; // returnează direct create.html
     }
-
     @PostMapping("/management/partners/create")
     public String createPartner(@ModelAttribute Partner partner, RedirectAttributes redirectAttributes) {
         try {
-            // Verifică dacă email-ul este valid
-            if (partner.getEmail() == null || partner.getEmail().trim().isEmpty()) {
-                redirectAttributes.addFlashAttribute("errorMessage", 
-                    "Email-ul este obligatoriu!");
-                return "redirect:/prodecan/management/partners/create";
-            }
-            
-            // Validăm email-ul
+            // Validare email
             if (!ValidationUtils.isValidEmail(partner.getEmail())) {
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "Adresa de email nu este validă!");
@@ -2268,39 +2318,33 @@ public class ProdecanController {
                 return "redirect:/prodecan/management/partners/create";
             }
             
-            // Salvăm partenerul
-            Partner savedPartner = partnerRepository.save(partner);
+            // Creăm partenerul folosind serviciul
+            PartnerService.PartnerCreationResult result = partnerService.createPartnerWithUser(partner);
             
-            // Creăm contul de utilizator
-            String tempPassword = passwordGeneratorService.generateRandomPassword();
-            User userPartner = new User();
-            userPartner.setEmail(savedPartner.getEmail());
-            userPartner.setNume(savedPartner.getNume());
-            userPartner.setPrenume(savedPartner.getPrenume());
-            userPartner.setPassword(passwordEncoder.encode(tempPassword));
-            userPartner.setRole("ROLE_PARTNER");
-            userPartner.setEnabled(true);
-            userPartner.setFirstLogin(true);
-            
-            userRepository.save(userPartner);
+            // Verificăm din nou că partenerul există
+            Partner checkPartner = partnerRepository.findById(result.getPartner().getId());
+            if (checkPartner == null) {
+                throw new RuntimeException("Partenerul nu a fost găsit după salvare!");
+            }
             
             redirectAttributes.addFlashAttribute("successMessage", 
                 "Partener creat cu succes!\n" +
                 "----------------------------------------\n" +
-                "Email: " + savedPartner.getEmail() + "\n" +
-                "PAROLA TEMPORARĂ: " + tempPassword + "\n" +
+                "Email: " + result.getPartner().getEmail() + "\n" +
+                "PAROLA TEMPORARĂ: " + result.getTemporaryPassword() + "\n" +
                 "----------------------------------------\n" +
                 "IMPORTANT: Salvați această parolă!");
             
             return "redirect:/prodecan/management/partners";
+            
         } catch (Exception e) {
-            e.printStackTrace(); // Pentru debugging
+            System.err.println("EROARE la crearea partenerului: " + e.getMessage());
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("errorMessage", 
                 "Eroare la crearea partenerului: " + e.getMessage());
             return "redirect:/prodecan/management/partners/create";
         }
     }
-
     // Modifică metoda pentru editarea partenerului
     @GetMapping("/management/partners/edit/{id}")
     public String showEditPartnerForm(@PathVariable int id, Model model, Authentication authentication) {

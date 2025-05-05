@@ -4,6 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.transaction.annotation.EnableTransactionManagement;
 
 import ro.upt.ac.conventii.prodecan.Prodecan;
 import ro.upt.ac.conventii.prodecan.ProdecanRepository;
@@ -15,6 +16,7 @@ import ro.upt.ac.conventii.security.User;
 import ro.upt.ac.conventii.security.UserRepository;
 
 @SpringBootApplication
+@EnableTransactionManagement
 public class Application {
 
     public static void main(String[] args) {

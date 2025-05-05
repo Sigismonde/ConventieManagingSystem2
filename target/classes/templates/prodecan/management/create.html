@@ -26,7 +26,7 @@
             </div>
             <div class="card-body">
                 <form th:action="@{${partner.id != null ? '/prodecan/management/partners/edit/' + partner.id : '/prodecan/management/partners/create'}}"
-                      th:object="${partner}" method="post">
+      th:object="${partner}" method="post">
                     
                     <div class="row mb-3">
                         <div class="col-md-6">
