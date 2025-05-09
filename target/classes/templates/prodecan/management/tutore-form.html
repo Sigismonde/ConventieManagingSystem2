@@ -25,7 +25,7 @@
                 </h5>
             </div>
             <div class="card-body">
-                <form th:action="@{${tutore.id != null ? '/prodecan/management/tutori/edit/' + tutore.id : '/prodecan/management/tutori/create'}}"
+                <form th:action="${tutore.id == 0 ? '/prodecan/management/tutori/create' : '/prodecan/management/tutori/edit/' + tutore.id}" 
                       th:object="${tutore}" method="post">
                     
                     <div class="row mb-3">
