@@ -8,8 +8,6 @@ import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.Lob;
 import jakarta.persistence.ManyToOne;
-import jakarta.persistence.PostPersist;
-import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import ro.upt.ac.conventii.companie.Companie;
 
@@ -46,7 +44,7 @@ public class Partner {
     
     private String telefon;
     
-    // Constructors
+    // Constructori
     public Partner() {}
     
     public Partner(Companie companie, String nume, String prenume, String functie, String email, String telefon) {
@@ -58,7 +56,7 @@ public class Partner {
         this.telefon = telefon;
     }
     
-    // Getters and Setters
+    // Getteri și Setteri
     public int getId() {
         return id;
     }
@@ -119,23 +117,16 @@ public class Partner {
         return prenume + " " + nume;
     }
     
-    @PrePersist
-    protected void onCreate() {
-        System.out.println("DEBUG: Pre-persist Partner - " + this.toString());
-    }
-    
-    @PostPersist
-    protected void onPersist() {
-        System.out.println("DEBUG: Post-persist Partner - ID=" + this.id);
-    }
-    
     @Override
     public String toString() {
         return "Partner{" +
                 "id=" + id +
+                ", companie=" + companie +
                 ", nume='" + nume + '\'' +
+                ", prenume='" + prenume + '\'' +
+                ", functie='" + functie + '\'' +
                 ", email='" + email + '\'' +
-                ", companie=" + (companie != null ? companie.getNume() : "null") +
+                ", telefon='" + telefon + '\'' +
                 '}';
     }
 }
