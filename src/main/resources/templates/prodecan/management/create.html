@@ -22,12 +22,12 @@
             <div class="card-header">
                 <h5 class="mb-0">
                     <i class="fas fa-handshake me-2"></i>
-                    <span th:text="${partner.id == null ? 'Adăugare Partener Nou' : 'Editare Partener'}">Partener</span>
+                   <span th:text="${partner.id == null ? 'Adăugare Partener Nou' : 'Editare Partener'}">Partener</span>
                 </h5>
             </div>
             <div class="card-body">
                 <!-- ATENȚIE - URL-ul a fost modificat pentru a se potrivi cu controllerul -->
-                <form th:action="@{'/prodecan/management/partners/create'}" th:object="${partner}" method="post">
+                <form th:action="@{/prodecan/management/partners/create}" th:object="${partner}" method="post">
                     
                     <div class="row mb-3">
                         <div class="col-md-6">

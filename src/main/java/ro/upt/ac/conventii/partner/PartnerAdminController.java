@@ -127,19 +127,19 @@ public class PartnerAdminController {
                 "----------------------------------------\n" +
                 "IMPORTANT: Salvați această parolă!");
                 
+            // La final, asigurați-vă că redirect-ul este corect:
             return "redirect:/prodecan/management/partners";
+            
         } catch (Exception e) {
-            System.err.println("Eroare la crearea partenerului: " + e.getMessage());
-            e.printStackTrace(); // Afișăm stack trace-ul complet pentru debugging
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("errorMessage", 
                 "Eroare la crearea partenerului: " + e.getMessage());
-            return "redirect:/prodecan/management/create";
+            return "redirect:/prodecan/management/create"; // Revine la formularul de creare
         }
     }
     
-    // Restul metodelor rămâne neschimbat, dar trebuie actualizate URL-urile
     @GetMapping("/partners/edit/{id}")
-    public String showEditForm(@PathVariable int id, Model model, Authentication authentication) {
+    public String showEditPartnerForm(@PathVariable int id, Model model, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         model.addAttribute("user", user);
         
@@ -151,15 +151,21 @@ public class PartnerAdminController {
         model.addAttribute("partner", partner);
         model.addAttribute("companii", companieRepository.findAll());
         
+        // Returnează template-ul de editare, nu cel de creare
         return "prodecan/management/partner-form";
     }
     
     @PostMapping("/partners/edit/{id}")
     public String updatePartner(@PathVariable int id, @ModelAttribute Partner partner, RedirectAttributes redirectAttributes) {
         try {
+            // Debug logging
+            System.out.println("=== UPDATE PARTNER DEBUG ===");
+            System.out.println("ID: " + id);
+            System.out.println("Partner data: " + partner);
+            
             Partner existingPartner = partnerRepository.findById(id);
             if (existingPartner == null) {
-                redirectAttributes.addFlashAttribute("errorMessage", "Partener negăsit!");
+                redirectAttributes.addFlashAttribute("errorMessage", "Partenerul nu a fost găsit!");
                 return "redirect:/prodecan/management/partners";
             }
             
@@ -172,19 +178,18 @@ public class PartnerAdminController {
             existingPartner.setFunctie(partner.getFunctie());
             existingPartner.setTelefon(partner.getTelefon());
             
-         // Actualizăm compania dacă s-a schimbat
-            if (existingPartner.getCompanie().getId() != partner.getCompanie().getId()) {
+            // Actualizăm compania dacă s-a schimbat
+            if (partner.getCompanie() != null && partner.getCompanie().getId() != 0) {
                 Companie companie = companieRepository.findById(partner.getCompanie().getId());
-                if (companie == null) {
-                    redirectAttributes.addFlashAttribute("errorMessage", "Compania selectată nu există!");
-                    return "redirect:/prodecan/management/partners/edit/" + id;
+                if (companie != null) {
+                    existingPartner.setCompanie(companie);
                 }
-                existingPartner.setCompanie(companie);
             }
             
+            // Salvăm partenerul
             partnerRepository.save(existingPartner);
             
-            // Actualizăm contul de utilizator dacă există
+            // Actualizăm contul de utilizator
             User userPartner = userRepository.findByEmail(originalEmail);
             if (userPartner != null) {
                 userPartner.setNume(partner.getNume());
@@ -193,9 +198,13 @@ public class PartnerAdminController {
             }
             
             redirectAttributes.addFlashAttribute("successMessage", "Partener actualizat cu succes!");
+            
+            // Redirect explicit către lista de parteneri
+            System.out.println("=== REDIRECTING TO: /prodecan/management/partners ===");
             return "redirect:/prodecan/management/partners";
             
         } catch (Exception e) {
+            e.printStackTrace();
             redirectAttributes.addFlashAttribute("errorMessage", 
                 "Eroare la actualizarea partenerului: " + e.getMessage());
             return "redirect:/prodecan/management/partners/edit/" + id;
