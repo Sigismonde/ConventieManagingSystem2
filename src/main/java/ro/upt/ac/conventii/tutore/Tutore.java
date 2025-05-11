@@ -8,10 +8,7 @@ import ro.upt.ac.conventii.companie.Companie;
 @Table(name = "tutori")
 public class Tutore {
     
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
-    
+  
     @Lob
     @Column(name = "semnatura", columnDefinition="LONGBLOB")
     private byte[] semnatura;
@@ -27,6 +24,10 @@ public class Tutore {
     @ManyToOne
     @JoinColumn(name = "companie_id", nullable = false)
     private Companie companie;
+    
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id; // Folosește int, nu Integer
     
     private String nume;
     private String prenume;

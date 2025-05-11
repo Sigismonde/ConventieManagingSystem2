@@ -8,7 +8,15 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <!-- Include navbar here -->
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" th:href="@{/prodecan/dashboard}">
+                <i class="fas fa-university me-2"></i>Portal Convenții - Prodecan
+            </a>
+            <!-- rest of navbar -->
+        </div>
+    </nav>
     
     <div class="container mt-4">
         <!-- Alert messages -->
@@ -26,7 +34,7 @@
         <!-- Header with actions -->
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h3><i class="fas fa-users me-2"></i>Gestionare Tutori</h3>
-            <a th:href="/prodecan/management/tutori/create" class="btn btn-primary">
+            <a th:href="@{/prodecan/management/tutori/create}" class="btn btn-primary">
                 <i class="fas fa-plus me-1"></i>Adaugă Tutore Nou
             </a>
         </div>
@@ -60,16 +68,16 @@
                                 <td th:text="${tutore.telefon}">Telefon</td>
                                 <td>
                                     <div class="btn-group">
-                                        <a th:href="@{'/prodecan/tutore-edit/' + ${tutore.id}}" class="btn btn-sm btn-primary me-1" title="Editează">
+                                        <a th:href="@{'/prodecan/management/tutori/edit/' + ${tutore.id}}" class="btn btn-sm btn-primary me-1" title="Editează">
                                             <i class="fas fa-edit"></i>
                                         </a>
-                                        <form th:action="@{'/prodecan/tutore-reset-password/' + ${tutore.id}}" method="post" class="d-inline me-1">
+                                        <form th:action="@{'/prodecan/management/tutori/reset-password/' + ${tutore.id}}" method="post" class="d-inline me-1">
                                             <button type="submit" class="btn btn-sm btn-warning" title="Resetează parola"
                                                     onclick="return confirm('Sigur doriți să resetați parola pentru acest tutore?')">
                                                 <i class="fas fa-key"></i>
                                             </button>
                                         </form>
-                                        <form th:action="@{'/prodecan/tutore-delete/' + ${tutore.id}}" method="post" class="d-inline">
+                                        <form th:action="@{'/prodecan/management/tutori/delete/' + ${tutore.id}}" method="post" class="d-inline">
                                             <button type="submit" class="btn btn-sm btn-danger" title="Șterge"
                                                     onclick="return confirm('Sigur doriți să ștergeți acest tutore?')">
                                                 <i class="fas fa-trash"></i>
