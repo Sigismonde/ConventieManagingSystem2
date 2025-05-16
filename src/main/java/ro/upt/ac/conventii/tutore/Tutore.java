@@ -1,4 +1,3 @@
-// Tutore.java
 package ro.upt.ac.conventii.tutore;
 
 import jakarta.persistence.*;
@@ -8,26 +7,9 @@ import ro.upt.ac.conventii.companie.Companie;
 @Table(name = "tutori")
 public class Tutore {
     
-  
-    @Lob
-    @Column(name = "semnatura", columnDefinition="LONGBLOB")
-    private byte[] semnatura;
-
-    public byte[] getSemnatura() {
-        return semnatura;
-    }
-
-    public void setSemnatura(byte[] semnatura) {
-        this.semnatura = semnatura;
-    }
-    
-    @ManyToOne
-    @JoinColumn(name = "companie_id", nullable = false)
-    private Companie companie;
-    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id; // Folosește int, nu Integer
+    private int id;
     
     private String nume;
     private String prenume;
@@ -37,6 +19,14 @@ public class Tutore {
     private String email;
     
     private String telefon;
+    
+    @ManyToOne
+    @JoinColumn(name = "companie_id", nullable = false)
+    private Companie companie;
+    
+    @Lob
+    @Column(name = "semnatura", columnDefinition="LONGBLOB")
+    private byte[] semnatura;
     
     // Constructors
     public Tutore() {}
@@ -107,6 +97,14 @@ public class Tutore {
         this.telefon = telefon;
     }
     
+    public byte[] getSemnatura() {
+        return semnatura;
+    }
+    
+    public void setSemnatura(byte[] semnatura) {
+        this.semnatura = semnatura;
+    }
+    
     public String getNumeComplet() {
         return prenume + " " + nume;
     }
@@ -115,7 +113,7 @@ public class Tutore {
     public String toString() {
         return "Tutore{" +
                 "id=" + id +
-                ", companie=" + companie +
+                ", companie=" + (companie != null ? companie.getNume() : "null") +
                 ", nume='" + nume + '\'' +
                 ", prenume='" + prenume + '\'' +
                 ", functie='" + functie + '\'' +

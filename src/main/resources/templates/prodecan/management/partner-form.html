@@ -44,18 +44,18 @@
                             <label for="functie" class="form-label">Funcție</label>
                             <input type="text" class="form-control" id="functie" th:field="*{functie}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label for="companie" class="form-label">Companie</label>
-                            <select class="form-select" id="companie" th:field="*{companie}" required>
-                                <option value="">Selectați compania</option>
-                                <option th:each="comp : ${companii}"
-                                        th:value="${comp}"
-                                        th:text="${comp.nume}"
-                                        th:selected="${comp.id == partner.companie.id}">
-                                    Nume Companie
-                                </option>
-                            </select>
-                        </div>
+                      <div class="col-md-6">
+    <label for="companie" class="form-label">Companie</label>
+    <select class="form-select" id="companie" th:field="*{companie}" required>
+        <option value="">Selectați compania</option>
+        <option th:each="comp : ${companii}"
+                th:value="${comp.id}"
+                th:text="${comp.nume}"
+                th:selected="${partner.companie != null and comp.id == partner.companie.id}">
+            Nume Companie
+        </option>
+    </select>
+</div>
                     </div>
                     
                     <div class="row mb-3">

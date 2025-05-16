@@ -13,6 +13,7 @@ import jakarta.persistence.OneToOne;
 import ro.upt.ac.conventii.cadruDidactic.CadruDidactic;
 import ro.upt.ac.conventii.companie.*;
 import ro.upt.ac.conventii.student.Student;
+import ro.upt.ac.conventii.tutore.Tutore;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.JoinColumn;
 
@@ -36,9 +37,9 @@ public class Conventie
 	private Date dataInceput;
 	private Date dataSfarsit;
 	private String numeProiect;
-	
-	@Embedded
-	private Tutore tutore=new Tutore();
+	@ManyToOne
+	@JoinColumn(name = "tutore_id")
+	private Tutore tutore;
 	@ManyToOne  
     @JoinColumn(name = "cadru_didactic_id")
 	private CadruDidactic cadruDidactic;

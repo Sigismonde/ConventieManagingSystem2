@@ -1,89 +1,140 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Formular Tutore - Prodecan</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Gestionare Tutore - Prodecan</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
+    <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
-            <a class="navbar-brand" th:href="@{/prodecan/dashboard}">
-                <i class="fas fa-university me-2"></i>Portal Convenții - Prodecan
+            <a class="navbar-brand" href="/prodecan/dashboard">
+                <i class="fas fa-graduation-cap me-2"></i>Portal Convenții - Prodecan
             </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/prodecan/dashboard">
+                            <i class="fas fa-tachometer-alt me-1"></i>Dashboard
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="/prodecan/management/tutori">
+                            <i class="fas fa-chalkboard-teacher me-1"></i>Tutori
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-user me-1"></i>
+                            <span th:text="${user.getNumeComplet()}">&nbsp;</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post" class="d-inline">
+                            <button class="btn btn-link nav-link" type="submit">
+                                <i class="fas fa-sign-out-alt me-1"></i>Deconectare
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
         </div>
     </nav>
 
     <div class="container mt-4">
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/prodecan/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item"><a href="/prodecan/management/tutori">Tutori</a></li>
+                <li class="breadcrumb-item active" aria-current="page" th:text="${tutore.id == 0 ? 'Adaugă Tutore' : 'Editează Tutore'}">Tutore</li>
+            </ol>
+        </nav>
+
+        <!-- Alerts -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Form Card -->
         <div class="card">
             <div class="card-header">
-                <h5 class="mb-0">
-                    <i class="fas fa-user-tie me-2"></i>
-                    <span th:text="${tutore.id != null ? 'Editare Tutore' : 'Adăugare Tutore Nou'}">Tutore</span>
-                </h5>
+                <h4 th:text="${tutore.id == 0 ? 'Adaugă Tutore' : 'Editează Tutore'}">Tutore</h4>
             </div>
             <div class="card-body">
-                <form th:action="@{${tutore.id != null && tutore.id > 0 ? '/prodecan/management/tutori/edit/' + tutore.id : '/prodecan/management/tutori/create'}}" 
-      th:object="${tutore}" method="post">
+                <form th:action="${tutore.id == 0 ? '/prodecan/management/tutori/create' : '/prodecan/management/tutori/edit/' + tutore.id}" 
+                      th:object="${tutore}" method="post">
+                    <input type="hidden" th:field="*{id}">
                     
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="nume" class="form-label">Nume</label>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="nume" class="form-label">Nume <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="nume" th:field="*{nume}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label for="prenume" class="form-label">Prenume</label>
+                        <div class="col-md-6 mb-3">
+                            <label for="prenume" class="form-label">Prenume <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="prenume" th:field="*{prenume}" required>
                         </div>
                     </div>
-
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="functie" class="form-label">Funcție</label>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="email" class="form-label">Email <span class="text-danger">*</span></label>
+                            <input type="email" class="form-control" id="email" th:field="*{email}" 
+                                   th:readonly="${tutore.id != 0}" 
+                                   th:title="${tutore.id != 0 ? 'Email-ul nu poate fi modificat după creare' : ''}" 
+                                   required>
+                            <small th:if="${tutore.id != 0}" class="text-muted">Email-ul nu poate fi modificat după creare</small>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="functie" class="form-label">Funcție <span class="text-danger">*</span></label>
                             <input type="text" class="form-control" id="functie" th:field="*{functie}" required>
                         </div>
-                        <div class="col-md-6">
-                            <label for="companie" class="form-label">Companie</label>
-                            <select class="form-select" id="companie" th:field="*{companie}" required>
-                                <option value="">Selectați compania</option>
-                                <option th:each="companie : ${companii}"
-                                        th:value="${companie.id}"
-                                        th:text="${companie.nume}">
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="telefon" class="form-label">Telefon</label>
+                            <input type="tel" class="form-control" id="telefon" th:field="*{telefon}" pattern="[0-9]{10}">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="companie.id" class="form-label">Companie <span class="text-danger">*</span></label>
+                            <!-- CORECTARE: Folosirea Integer în loc de int pentru companie.id și valoare default -->
+                            <select class="form-select" id="companie.id" name="companie.id" required>
+                                <option value="">-- Selectează o companie --</option>
+                                <option th:each="comp : ${companii}" 
+                                        th:value="${comp.id}" 
+                                        th:text="${comp.nume}"
+                                        th:selected="${tutore.companie != null && tutore.companie.id == comp.id}">
                                     Nume Companie
                                 </option>
                             </select>
                         </div>
                     </div>
                     
-                    <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="email" class="form-label">Email</label>
-                           <input type="email" class="form-control" id="email" 
-       th:field="*{email}" 
-       th:readonly="${tutore.id != null && tutore.id > 0}"
-       required>
-
-                        </div>
-                        <div class="col-md-6">
-                            <label for="telefon" class="form-label">Telefon</label>
-                            <input type="text" class="form-control" id="telefon" th:field="*{telefon}" required>
-                        </div>
-                    </div>
-
-                    <div class="alert alert-info" th:if="${tutore.id == null}">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Un cont de utilizator va fi creat automat pentru acest tutore. Parola generată va fi afișată după salvare.
-                    </div>
-
                     <div class="d-flex justify-content-between">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-save me-1"></i>Salvează
-                        </button>
-                        <a th:href="@{/prodecan/management/tutori}" class="btn btn-secondary">
-                            <i class="fas fa-arrow-left me-1"></i>Înapoi
+                        <a href="/prodecan/management/tutori" class="btn btn-secondary">
+                            <i class="fas fa-times me-1"></i>Anulează
                         </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>
+                            <span th:text="${tutore.id == 0 ? 'Creează Tutore' : 'Actualizează'}">Salvează</span>
+                        </button>
                     </div>
                 </form>
             </div>

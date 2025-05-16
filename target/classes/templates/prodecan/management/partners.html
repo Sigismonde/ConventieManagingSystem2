@@ -133,12 +133,14 @@
                                                 <i class="fas fa-key"></i>
                                             </button>
                                         </form>
-                                        <a th:href="@{/prodecan/management/partners/delete/{id}(id=${partner.id})}"
-                                           class="btn btn-danger btn-sm"
-                                           onclick="return confirm('Ești sigur că vrei să ștergi acest partener?')"
-                                           title="Șterge">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
+<form th:action="@{/prodecan/management/partners/delete/{id}(id=${partner.id})}" 
+      method="post" class="d-inline">
+    <button type="submit" class="btn btn-danger btn-sm"
+            onclick="return confirm('Ești sigur că vrei să ștergi acest partener?')"
+            title="Șterge">
+        <i class="fas fa-trash"></i>
+    </button>
+</form>
                                     </div>
                                 </td>
                             </tr>

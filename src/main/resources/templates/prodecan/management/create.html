@@ -48,13 +48,13 @@
                         <div class="col-md-6">
                             <label for="companie" class="form-label">Companie</label>
                             <select class="form-select" id="companie" th:field="*{companie}" required>
-                                <option value="">Selectați compania</option>
-                                <option th:each="companie : ${companii}"
-                                        th:value="${companie.id}"
-                                        th:text="${companie.nume}">
-                                    Nume Companie
-                                </option>
-                            </select>
+    <option value="">Selectați compania</option>
+    <option th:each="companie : ${companii}"
+            th:value="${companie.id}"
+            th:text="${companie.nume}">
+        Nume Companie
+    </option>
+</select>
                         </div>
                     </div>
                     
