@@ -6,10 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
 </head>
 <body>
     <!-- Navbar -->
-  <!-- Navbar -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/student/dashboard">
@@ -50,7 +50,6 @@
         </div>
     </nav>
 
-
     <div class="container mt-4">
         <div class="card">
             <div class="card-header bg-primary text-white">
@@ -59,7 +58,7 @@
                 </h3>
             </div>
             <div class="card-body">
-                <form th:action="@{/student/conventie-create}" th:object="${conventie}" method="post">
+                <form th:action="@{/student/conventie-create}" th:object="${conventie}" method="post" id="conventieForm">
                     <!-- Informații Student - Readonly -->
                     <div class="row mb-3">
                         <div class="col-md-6">
@@ -75,7 +74,7 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Companie:</label>
-                            <select class="form-control" th:field="*{companie}" required>
+                            <select class="form-control" th:field="*{companie}" required id="companieSelect">
                                 <option value="">Selectează compania</option>
                                 <option th:each="comp : ${companii}"
                                         th:value="${comp.id}"
@@ -121,46 +120,31 @@
                     <div class="row mb-3">
                         <div class="col-md-6">
                             <label class="form-label">Cadru Didactic:</label>
-                            <select class="form-control" th:field="*{cadruDidactic}" required>
+                            <select class="form-control select2" th:field="*{cadruDidactic}" required>
                                 <option value="">Selectează cadrul didactic</option>
                                 <option th:each="cd : ${cadreDidactice}"
                                         th:value="${cd.id}"
-                                        th:text="${cd.nume + ' ' + cd.prenume}">
+                                        th:text="${cd.nume + ' ' + cd.prenume + ' (' + cd.functie + ')'}">
                                 </option>
                             </select>
                         </div>
                     </div>
 
-                    <!-- Informații Tutore -->
-                    <div class="card mb-3">
-                        <div class="card-header">
-                            <h5 class="mb-0">Informații Tutore</h5>
-                        </div>
-                        <div class="card-body">
-                            <div class="row mb-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Nume:</label>
-                                    <input type="text" class="form-control" th:field="*{tutore.nume}" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Prenume:</label>
-                                    <input type="text" class="form-control" th:field="*{tutore.prenume}" required>
-                                </div>
-                                <div class="col-md-4">
-                                    <label class="form-label">Funcție:</label>
-                                    <input type="text" class="form-control" th:field="*{tutore.functie}" required>
-                                </div>
-                            </div>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <label class="form-label">Email:</label>
-                                    <input type="email" class="form-control" th:field="*{tutore.email}" required>
-                                </div>
-                                <div class="col-md-6">
-                                    <label class="form-label">Telefon:</label>
-                                    <input type="text" class="form-control" th:field="*{tutore.telefon}" required>
-                                </div>
-                            </div>
+                    <!-- Selector Tutore (doar dropdown-ul) -->
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label">Tutore:</label>
+                            <select class="form-control select2" id="tutoreSelect" th:field="*{tutore}">
+                                <option value="">Selectează tutorele</option>
+                                <!-- Opțiunile vor fi încărcate dinamic prin JavaScript -->
+                            </select>
+                            
+                            <!-- Câmpuri ascunse pentru a stoca datele tutorului -->
+                            <input type="hidden" th:field="*{tutore.nume}">
+                            <input type="hidden" th:field="*{tutore.prenume}">
+                            <input type="hidden" th:field="*{tutore.functie}">
+                            <input type="hidden" th:field="*{tutore.email}">
+                            <input type="hidden" th:field="*{tutore.telefon}">
                         </div>
                     </div>
 
@@ -197,6 +181,105 @@
         </div>
     </div>
 
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+    
+    <script>
+        $(document).ready(function() {
+            // Inițializare Select2 pentru selectoare
+            $('.select2').select2({
+                width: '100%'
+            });
+            
+            // Funcție pentru a încărca tutorii pentru o companie
+            function loadTutoriForCompanie(companieId) {
+                if (!companieId) {
+                    $('#tutoreSelect').empty().append('<option value="">Selectează tutorele</option>');
+                    return;
+                }
+                
+                // Trimitem o cerere AJAX pentru a obține tutorii pentru compania selectată
+                $.ajax({
+                    url: '/api/tutori/by-companie/' + companieId,
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(data) {
+                        // Golim dropdown-ul curent
+                        $('#tutoreSelect').empty();
+                        $('#tutoreSelect').append('<option value="">Selectează tutorele</option>');
+                        
+                        // Populăm dropdown-ul cu tutorii primiți
+                        if (data && data.length > 0) {
+                            $.each(data, function(index, tutore) {
+                                $('#tutoreSelect').append(
+                                    $('<option></option>')
+                                        .attr('value', tutore.id)
+                                        .text(tutore.nume + ' ' + tutore.prenume + ' (' + tutore.functie + ')')
+                                        .data('tutore', tutore)
+                                );
+                            });
+                            
+                            // Adăugăm opțiunea de a introduce manual un tutore nou
+                            $('#tutoreSelect').append(
+                                $('<option></option>')
+                                    .attr('value', "new")
+                                    .text("Adaugă tutore nou")
+                            );
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        console.error('Eroare la încărcarea tutorilor:', error);
+                        $('#tutoreSelect').empty().append('<option value="">Selectează tutorele</option>');
+                    }
+                });
+            }
+            
+            // Event listener pentru schimbarea companiei selectate
+            $('#companieSelect').on('change', function() {
+                var companieId = $(this).val();
+                loadTutoriForCompanie(companieId);
+            });
+            
+            // Event listener pentru selectarea unui tutore
+            $('#tutoreSelect').on('change', function() {
+                var tutoreId = $(this).val();
+                
+                if (tutoreId === "new") {
+                    // Dacă s-a selectat "Adaugă tutore nou", afișează un modal sau o formă separată
+                    // pentru introducerea datelor tutorelui
+                    alert("Pentru a adăuga un tutore nou, contactați administratorul.");
+                    $(this).val("").trigger('change.select2');
+                    return;
+                }
+                
+                if (tutoreId) {
+                    // Obținem datele tutorului selectat
+                    var tutore = $('#tutoreSelect option:selected').data('tutore');
+                    if (tutore) {
+                        // Completăm câmpurile ascunse cu datele tutorului
+                        $('input[name="tutore.nume"]').val(tutore.nume);
+                        $('input[name="tutore.prenume"]').val(tutore.prenume);
+                        $('input[name="tutore.functie"]').val(tutore.functie);
+                        $('input[name="tutore.email"]').val(tutore.email);
+                        $('input[name="tutore.telefon"]').val(tutore.telefon);
+                    }
+                } else {
+                    // Resetăm câmpurile de tutore când nu este selectat nimic
+                    $('input[name="tutore.nume"]').val('');
+                    $('input[name="tutore.prenume"]').val('');
+                    $('input[name="tutore.functie"]').val('');
+                    $('input[name="tutore.email"]').val('');
+                    $('input[name="tutore.telefon"]').val('');
+                }
+            });
+            
+            // Verificăm dacă există o companie deja selectată la încărcarea paginii
+            var initialCompanyId = $('#companieSelect').val();
+            if (initialCompanyId) {
+                loadTutoriForCompanie(initialCompanyId);
+            }
+        });
+    </script>
 </body>
 </html>

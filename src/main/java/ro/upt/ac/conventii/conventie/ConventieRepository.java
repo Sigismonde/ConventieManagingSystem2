@@ -65,4 +65,10 @@ public interface ConventieRepository extends JpaRepository<Conventie, Integer> {
     
     @Query("SELECT c FROM Conventie c WHERE c.status = :status AND c.companie.id = :companieId ORDER BY c.dataIntocmirii DESC")
     List<Conventie> findTop5ByStatusAndCompanieIdOrderByDataIntocmiriiDesc(@Param("status") ConventieStatus status, @Param("companieId") int companieId, Pageable pageable);
+    
+    @Query("SELECT c FROM Conventie c WHERE c.companie = :companie AND c.status = :status ORDER BY c.dataIntocmirii DESC")
+    List<Conventie> findTop5ByCompanieAndStatusOrderByDataIntocmiriiDesc(
+        @Param("companie") Companie companie, 
+        @Param("status") ConventieStatus status, 
+        Pageable pageable);
 }

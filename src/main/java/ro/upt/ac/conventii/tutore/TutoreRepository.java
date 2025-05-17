@@ -16,7 +16,8 @@ public interface TutoreRepository extends JpaRepository<Tutore, Integer> {
 	    Tutore findTutoreById(@Param("id") int id);
 	    
 	    // Metodă pentru căutare după email
-	    Tutore findByEmail(String email);
-    List<Tutore> findByCompanie(Companie companie);
-    List<Tutore> findByCompanieId(int companieId);
+	   Optional<Tutore> findByEmail(String email);
+	    
+	    List<Tutore> findByCompanie(Companie companie);
+	    List<Tutore> findByCompanieId(int companieId);
 }

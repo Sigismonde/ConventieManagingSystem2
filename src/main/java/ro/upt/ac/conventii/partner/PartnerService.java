@@ -9,7 +9,7 @@ import ro.upt.ac.conventii.security.User;
 import ro.upt.ac.conventii.security.UserRepository;
 import ro.upt.ac.conventii.service.PasswordGeneratorService;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-
+import jakarta.persistence.EntityNotFoundException;
 @Service
 public class PartnerService {
 	
@@ -33,7 +33,8 @@ public class PartnerService {
     public PartnerCreationResult createPartnerWithUser(Partner partner) {
         try {
             // 1. Verificăm și încărcăm compania
-            Companie companie = companieRepository.findById(partner.getCompanie().getId());
+            Companie companie = companieRepository.findById(partner.getCompanie().getId()).orElseThrow(() -> new EntityNotFoundException("Compania cu ID " + 
+                    partner.getCompanie().getId() + " nu a fost găsită"));;
             if (companie == null) {
                 throw new RuntimeException("Compania cu ID " + partner.getCompanie().getId() + " nu a fost găsită!");
             }

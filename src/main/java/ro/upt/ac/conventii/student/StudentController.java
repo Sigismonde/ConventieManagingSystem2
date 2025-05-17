@@ -175,6 +175,7 @@ public class StudentController {
         return "student/conventie-list";
     }
 
+ /// Actualizare pentru metoda conventieNoua din StudentController
     @GetMapping("/student/conventie-noua")
     public String conventieNoua(Authentication authentication, Model model) {
         User user = (User) authentication.getPrincipal();
@@ -189,18 +190,22 @@ public class StudentController {
         conventie.setStudent(student);
         conventie.setStatus(ConventieStatus.IN_ASTEPTARE);
         
+        // Inițializăm un obiect tutore gol pentru formularul Thymeleaf
+        Tutore tutore = new Tutore();
+        conventie.setTutore(tutore);
+        
         // Adăugăm în model
         model.addAttribute("conventie", conventie);
         model.addAttribute("companii", companieRepository.findAll());
         model.addAttribute("cadreDidactice", cadruDidacticRepository.findAll());
         
-        return "student/conventie-form";  // schimbăm template-ul
+        return "student/conventie-form";  // șablon actualizat
     }
-
     @PostMapping("/student/conventie-create")
     public String createConventie(@ModelAttribute Conventie conventie, 
-                                  Authentication authentication, 
-                                  RedirectAttributes redirectAttributes) {
+                                 @RequestParam(value = "tutoreId", required = false) String tutoreId,
+                                 Authentication authentication, 
+                                 RedirectAttributes redirectAttributes) {
         try {
             User user = (User) authentication.getPrincipal();
             Student student = studentRepository.findByEmail(user.getEmail())
@@ -210,49 +215,67 @@ public class StudentController {
             conventie.setDataIntocmirii(new Date(System.currentTimeMillis()));
             conventie.setStatus(ConventieStatus.NETRIMIS);  // Setăm statusul inițial
             
-            // Salvăm convenția
-            conventieRepository.save(conventie);
+            // Verificăm compania selectată
+            if (conventie.getCompanie() == null || conventie.getCompanie().getId() == 0) {
+                throw new RuntimeException("Trebuie să selectați o companie!");
+            }
             
-            // Verificăm dacă există deja un tutore cu acest email
-            Optional<Tutore> existingTutore = tutoreRepository.findByEmail(conventie.getTutore().getEmail());
-            
-            if (existingTutore.isEmpty()) {
-                // Nu există tutore, creăm unul nou și un cont de utilizator
-                Tutore tutore = new Tutore();
-                tutore.setNume(conventie.getTutore().getNume());
-                tutore.setPrenume(conventie.getTutore().getPrenume());
-                tutore.setFunctie(conventie.getTutore().getFunctie());
-                tutore.setEmail(conventie.getTutore().getEmail());
-                tutore.setTelefon(conventie.getTutore().getTelefon());
-                
-                // Salvăm corect compania pentru tutore
-                tutore.setCompanie(conventie.getCompanie());
-                
-                // Salvăm tutorele
-                tutoreRepository.save(tutore);
-                
-                // Verificăm dacă există deja un user cu acest email
-                User existingUser = userRepository.findByEmail(tutore.getEmail());
-                
-                if (existingUser == null) {
-                    // Creăm un cont de utilizator pentru tutore
-                    // Generăm o parolă mai sigură eliminând spațiile și caracterele speciale
-                    String password = (tutore.getNume() + tutore.getPrenume()).replaceAll("\\s+", "");
+            // Verificăm dacă a fost selectat un tutore existent sau s-a creat unul nou
+            if (tutoreId != null && !tutoreId.isEmpty() && !tutoreId.equals("new") && !tutoreId.equals("")) {
+                try {
+                    // Convertim ID-ul la int și căutăm tutorele
+                    int tutoreIdInt = Integer.parseInt(tutoreId);
+                    Tutore existingTutore = tutoreRepository.findTutoreById(tutoreIdInt);
                     
-                    User userTutore = new User();
-                    userTutore.setEmail(tutore.getEmail());
-                    userTutore.setNume(tutore.getNume());
-                    userTutore.setPrenume(tutore.getPrenume());
-                    userTutore.setPassword(passwordEncoder.encode(password));
-                    userTutore.setRole("ROLE_TUTORE");
-                    userTutore.setEnabled(true);
-                    userTutore.setFirstLogin(true);
+                    if (existingTutore != null) {
+                        // Folosim tutorele existent
+                        conventie.setTutore(existingTutore);
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignorăm eroarea și folosim tutorele din formular
+                }
+            } else {
+                // Verificăm dacă există deja un tutore cu acest email
+                Optional<Tutore> existingTutoreOpt = tutoreRepository.findByEmail(conventie.getTutore().getEmail());
+                
+                if (existingTutoreOpt.isEmpty()) {
+                    // Nu există tutore, creăm unul nou și un cont de utilizator
+                    Tutore tutore = conventie.getTutore();
                     
-                    userRepository.save(userTutore);
+                    // Salvăm compania pentru tutore
+                    tutore.setCompanie(conventie.getCompanie());
                     
-                    System.out.println("Cont tutore creat cu succes: " + tutore.getEmail() + ", parola: " + password);
+                    // Salvăm tutorele
+                    tutoreRepository.save(tutore);
+                    
+                    // Verificăm dacă există deja un user cu acest email
+                    User existingUser = userRepository.findByEmail(tutore.getEmail());
+                    
+                    if (existingUser == null) {
+                        // Creăm un cont de utilizator pentru tutore
+                        String password = (tutore.getNume() + tutore.getPrenume()).replaceAll("\\s+", "");
+                        
+                        User userTutore = new User();
+                        userTutore.setEmail(tutore.getEmail());
+                        userTutore.setNume(tutore.getNume());
+                        userTutore.setPrenume(tutore.getPrenume());
+                        userTutore.setPassword(passwordEncoder.encode(password));
+                        userTutore.setRole("ROLE_TUTORE");
+                        userTutore.setEnabled(true);
+                        userTutore.setFirstLogin(true);
+                        
+                        userRepository.save(userTutore);
+                        
+                        System.out.println("Cont tutore creat cu succes: " + tutore.getEmail() + ", parola: " + password);
+                    }
+                } else {
+                    // Dacă există deja un tutore, actualizăm convenția pentru a utiliza tutorele existent
+                    conventie.setTutore(existingTutoreOpt.get());
                 }
             }
+            
+            // Salvăm convenția
+            conventieRepository.save(conventie);
             
             redirectAttributes.addFlashAttribute("successMessage", "Convenția a fost creată cu succes!");
             return "redirect:/student/conventii";
@@ -261,6 +284,97 @@ public class StudentController {
             return "redirect:/student/conventie-noua";
         }
     }
+
+    @PostMapping("/student/conventie-update/{id}")
+    public String updateConventie(@PathVariable("id") int id, 
+                                @ModelAttribute Conventie conventie,
+                                @RequestParam(value = "tutoreId", required = false) String tutoreId,
+                                Authentication authentication,
+                                RedirectAttributes redirectAttributes) {
+        try {
+            User user = (User) authentication.getPrincipal();
+            Conventie existingConventie = conventieRepository.findById(id);
+            
+            if (existingConventie == null || 
+                !existingConventie.getStudent().getEmail().equals(user.getEmail())) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Nu aveți permisiunea să editați această convenție!");
+                return "redirect:/student/conventii";
+            }
+
+            conventie.setId(id);
+            conventie.setStudent(existingConventie.getStudent());
+            
+            // Păstrăm statusul original dacă era NETRIMIS sau RESPINSA
+            if (existingConventie.getStatus() == ConventieStatus.NETRIMIS) {
+                conventie.setStatus(ConventieStatus.NETRIMIS);
+            } else if (existingConventie.getStatus() == ConventieStatus.RESPINSA) {
+                conventie.setStatus(ConventieStatus.NETRIMIS);
+            } else {
+                conventie.setStatus(existingConventie.getStatus());
+            }
+
+            // Verificăm dacă a fost selectat un tutore existent sau s-a creat unul nou
+            if (tutoreId != null && !tutoreId.isEmpty() && !tutoreId.equals("new") && !tutoreId.equals("")) {
+                try {
+                    // Convertim ID-ul la int și căutăm tutorele
+                    int tutoreIdInt = Integer.parseInt(tutoreId);
+                    Tutore existingTutore = tutoreRepository.findTutoreById(tutoreIdInt);
+                    
+                    if (existingTutore != null) {
+                        // Folosim tutorele existent
+                        conventie.setTutore(existingTutore);
+                    }
+                } catch (NumberFormatException e) {
+                    // Ignorăm eroarea și folosim tutorele din formular
+                }
+            } else {
+                // Verificăm dacă există deja un tutore cu acest email
+                Optional<Tutore> existingTutoreOpt = tutoreRepository.findByEmail(conventie.getTutore().getEmail());
+                
+                if (existingTutoreOpt.isEmpty()) {
+                    // Nu există tutore, creăm unul nou
+                    Tutore tutore = conventie.getTutore();
+                    tutore.setCompanie(conventie.getCompanie());
+                    tutoreRepository.save(tutore);
+                    
+                    // Verificăm dacă există un cont de utilizator pentru acest tutore
+                    User tutoreUser = userRepository.findByEmail(tutore.getEmail());
+                    if (tutoreUser == null) {
+                        // Creăm un cont de utilizator pentru tutore
+                        String password = (tutore.getNume() + tutore.getPrenume()).replaceAll("\\s+", "");
+                        
+                        User userTutore = new User();
+                        userTutore.setEmail(tutore.getEmail());
+                        userTutore.setNume(tutore.getNume());
+                        userTutore.setPrenume(tutore.getPrenume());
+                        userTutore.setPassword(passwordEncoder.encode(password));
+                        userTutore.setRole("ROLE_TUTORE");
+                        userTutore.setEnabled(true);
+                        userTutore.setFirstLogin(true);
+                        
+                        userRepository.save(userTutore);
+                        
+                        System.out.println("Cont tutore creat cu succes: " + tutore.getEmail() + ", parola: " + password);
+                    }
+                } else {
+                    // Dacă există deja un tutore, folosim tutorele existent
+                    conventie.setTutore(existingTutoreOpt.get());
+                }
+            }
+            
+            conventieRepository.save(conventie);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Convenția a fost actualizată cu succes!");
+            return "redirect:/student/conventii";
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la actualizarea convenției: " + e.getMessage());
+            return "redirect:/student/conventie-edit/" + id;
+        }
+    }
+
     
     @GetMapping("/student/conventie-sterge/{id}")
     public String stergeConventie(@PathVariable("id") int id, Authentication authentication, RedirectAttributes redirectAttributes) {
@@ -406,64 +520,25 @@ public class StudentController {
      }
      return "redirect:/student/conventii";
  }
-    @GetMapping("/student/conventie-edit/{id}")
-    public String editConventie(@PathVariable("id") int id, 
-                              Authentication authentication,
-                              Model model) {
-        User user = (User) authentication.getPrincipal();
-        Conventie conventie = conventieRepository.findById(id);
-        
-        if (conventie == null || !conventie.getStudent().getEmail().equals(user.getEmail())) {
-            return "redirect:/student/conventii";
-        }
-        
-        model.addAttribute("user", user);
-        model.addAttribute("conventie", conventie);
-        model.addAttribute("companii", companieRepository.findAll());
-        model.addAttribute("cadreDidactice", cadruDidacticRepository.findAll());
-        
-        return "student/conventie-edit";
-    }
+ @GetMapping("/student/conventie-edit/{id}")
+ public String editConventie(@PathVariable("id") int id, 
+                           Authentication authentication,
+                           Model model) {
+     User user = (User) authentication.getPrincipal();
+     Conventie conventie = conventieRepository.findById(id);
+     
+     if (conventie == null || !conventie.getStudent().getEmail().equals(user.getEmail())) {
+         return "redirect:/student/conventii";
+     }
+     
+     model.addAttribute("user", user);
+     model.addAttribute("conventie", conventie);
+     model.addAttribute("companii", companieRepository.findAll());
+     model.addAttribute("cadreDidactice", cadruDidacticRepository.findAll());
+     
+     return "student/conventie-edit";
+ }
 
-    @PostMapping("/student/conventie-update/{id}")
-    public String updateConventie(@PathVariable("id") int id, 
-                                @ModelAttribute Conventie conventie,
-                                Authentication authentication,
-                                RedirectAttributes redirectAttributes) {
-        try {
-            User user = (User) authentication.getPrincipal();
-            Conventie existingConventie = conventieRepository.findById(id);
-            
-            if (existingConventie == null || 
-                !existingConventie.getStudent().getEmail().equals(user.getEmail())) {
-                redirectAttributes.addFlashAttribute("errorMessage", 
-                    "Nu aveți permisiunea să editați această convenție!");
-                return "redirect:/student/conventii";
-            }
-
-            conventie.setId(id);
-            conventie.setStudent(existingConventie.getStudent());
-            
-            // Păstrăm statusul original dacă era NETRIMIS
-            if (existingConventie.getStatus() == ConventieStatus.NETRIMIS) {
-                conventie.setStatus(ConventieStatus.NETRIMIS);
-            } else if (existingConventie.getStatus() == ConventieStatus.RESPINSA) {
-                conventie.setStatus(ConventieStatus.NETRIMIS);
-            } else {
-                conventie.setStatus(existingConventie.getStatus());
-            }
-            
-            conventieRepository.save(conventie);
-            
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Convenția a fost actualizată cu succes!");
-            return "redirect:/student/conventii";
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage", 
-                "Eroare la actualizarea convenției: " + e.getMessage());
-            return "redirect:/student/conventie-edit/" + id;
-        }
-    }
     
     @GetMapping("/student/conventie-export/{id}")
     public ResponseEntity<String> exportConventie(@PathVariable("id") int id, Authentication authentication) {

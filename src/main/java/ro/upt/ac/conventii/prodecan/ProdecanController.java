@@ -7,6 +7,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import com.lowagie.text.*;
@@ -427,7 +428,6 @@ public class ProdecanController {
         return "prodecan/companie-form";
     }
 
-    // Salvare companie nouă
     @Transactional
     @PostMapping("/companie-create")
     public String createCompanie(@ModelAttribute Companie companie, RedirectAttributes redirectAttributes) {
@@ -453,11 +453,13 @@ public class ProdecanController {
             
             // Salvăm compania
             companieRepository.save(companie);
+            
             // Obținem compania cu ID după salvare pentru a ne asigura că avem ID-ul corect
-            Companie savedCompanie = companieRepository.findById(companie.getId());
+            Companie savedCompanie = companieRepository.findById(companie.getId())
+                .orElseThrow(() -> new RuntimeException("Compania cu ID " + companie.getId() + " nu a fost găsită"));
             
             // Verificăm dacă compania a fost salvată corect și are ID
-            if (savedCompanie == null || savedCompanie.getId() == 0) {
+            if (savedCompanie.getId() == 0) {
                 throw new RuntimeException("Compania a fost salvată dar nu are un ID valid!");
             }
             
@@ -522,10 +524,9 @@ public class ProdecanController {
             }
                     
             return "redirect:/prodecan/companii";
-            
         } catch (Exception e) {
             // Verificăm dacă eroarea este cauzată de cheie duplicată
-            if (e.getMessage().contains("Duplicate entry")) {
+            if (e.getMessage() != null && e.getMessage().contains("Duplicate entry")) {
                 if (e.getMessage().contains("email")) {
                     redirectAttributes.addFlashAttribute("errorMessage", 
                         "Există deja o companie cu această adresă de email!");
@@ -546,7 +547,6 @@ public class ProdecanController {
             return "redirect:/prodecan/companie-create";
         }
     }
-
     
  // Fragment pentru actualizarea ProdecanController
  // Metoda de aprobare a unei convenții ar trebui actualizată astfel:
@@ -1050,7 +1050,9 @@ public class ProdecanController {
     // Editare companie - formular
     @GetMapping("/companie-edit/{id}")
     public String showEditCompanieForm(@PathVariable int id, Model model) {
-        Companie companie = companieRepository.findById(id);
+    	Companie companie = companieRepository.findById(id)
+    		    .orElseThrow(() -> new RuntimeException("Compania cu ID " + id + " nu a fost găsită"));
+
         if (companie != null) {
             model.addAttribute("companie", companie);
             return "prodecan/companie-form";
@@ -1071,7 +1073,9 @@ public class ProdecanController {
     // Ștergere companie
     @GetMapping("/companie-delete/{id}")
     public String deleteCompanie(@PathVariable int id) {
-        Companie companie = companieRepository.findById(id);
+    	Companie companie = companieRepository.findById(id)
+    		    .orElseThrow(() -> new RuntimeException("Compania cu ID " + id + " nu a fost găsită"));
+
         if (companie != null) {
             companieRepository.delete(companie);
         }

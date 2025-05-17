@@ -25,10 +25,10 @@
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link" href="/student/conventie-noua">
-                            <i class="fas fa-plus me-1"></i>Convenție Nouă
-                        </a>
-                    </li>
+    <a class="nav-link" href="/student/conventie-noua">
+        <i class="fas fa-plus me-1"></i>Convenție Nouă
+    </a>
+</li>
                 </ul>
                 <ul class="navbar-nav">
                     <li class="nav-item">
@@ -193,12 +193,12 @@
 
                                 <!-- Editare - doar pentru NETRIMIS sau RESPINSA -->
                                 <a th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).NETRIMIS || 
-                                         conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA}"
-                                   th:href="@{'/student/conventie-edit/' + ${conventie.id}}" 
-                                   class="btn btn-warning btn-sm me-1" 
-                                   title="Editează">
-                                    <i class="fas fa-edit"></i>
-                                </a>
+         conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA}"
+   th:href="@{'/student/conventie-edit/' + ${conventie.id}}" 
+   class="btn btn-warning btn-sm me-1" 
+   title="Editează">
+    <i class="fas fa-edit"></i>
+</a>
 
                                 <!-- Word și PDF - pentru toate statusurile -->
                                 <a th:href="@{'/student/conventie-export-word/' + ${conventie.id}}" 

@@ -84,7 +84,8 @@ public class PartnerAdminController {
             }
             
             // Verificăm dacă compania există
-            Companie companie = companieRepository.findById(partner.getCompanie().getId());
+            Companie companie = companieRepository.findById(partner.getCompanie().getId())
+                    .orElseThrow(() -> new RuntimeException("Compania nu a fost găsită"));
             if (companie == null) {
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "Compania selectată nu există!");
@@ -180,7 +181,8 @@ public class PartnerAdminController {
             
             // Actualizăm compania dacă s-a schimbat
             if (partner.getCompanie() != null && partner.getCompanie().getId() != 0) {
-                Companie companie = companieRepository.findById(partner.getCompanie().getId());
+            	Companie companie = companieRepository.findById(partner.getCompanie().getId())
+                        .orElseThrow(() -> new RuntimeException("Compania nu a fost găsită"));
                 if (companie != null) {
                     existingPartner.setCompanie(companie);
                 }
