@@ -105,6 +105,8 @@ public class ProrectorController {
         return "prorector/dashboard";
     }
     
+    
+    
     @PostMapping("/upload-semnatura")
     public String uploadSemnatura(@RequestParam("semnatura") MultipartFile file, 
                                 Authentication authentication,
@@ -146,28 +148,28 @@ public class ProrectorController {
     @PostMapping("/semneaza-conventie/{id}")
     public String semneazaConventie(@PathVariable("id") int id, Authentication authentication, RedirectAttributes redirectAttributes) {
         try {
-            // Get the prorector who approves
+            // Obținem prorectorul care aprobă
             User user = (User) authentication.getPrincipal();
             Prorector prorector = prorectorRepository.findByEmail(user.getEmail());
             
-            // Check if prorector has an uploaded signature
+            // Verificăm dacă prorectorul are o semnătură încărcată
             if (prorector == null || prorector.getSemnatura() == null) {
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "Nu puteți aproba convenția fără o semnătură încărcată. Vă rugăm să încărcați mai întâi semnătura în panoul de control.");
                 return "redirect:/prorector/conventii";
             }
 
-            // Find the convention
+            // Găsim convenția
             Conventie conventie = conventieRepository.findById(id);
             if (conventie != null) {
-                // Check if the convention is in the correct state for approval
+                // Verificăm dacă convenția este în starea corectă pentru aprobare
                 if (conventie.getStatus() != ConventieStatus.IN_ASTEPTARE_PRORECTOR) {
                     redirectAttributes.addFlashAttribute("errorMessage", 
                         "Această convenție nu este în stadiul de așteptare aprobare de la prorector!");
                     return "redirect:/prorector/conventii";
                 }
                 
-                // Update status and save
+                // Actualizăm status-ul și salvăm
                 conventie.setStatus(ConventieStatus.APROBATA);
                 conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
                 conventieRepository.save(conventie);
@@ -175,6 +177,7 @@ public class ProrectorController {
                 redirectAttributes.addFlashAttribute("successMessage", 
                     "Convenția a fost aprobată cu succes și semnată digital!");
             }
+            
         } catch (Exception e) {
             redirectAttributes.addFlashAttribute("errorMessage", 
                 "Eroare la semnarea convenției: " + e.getMessage());
