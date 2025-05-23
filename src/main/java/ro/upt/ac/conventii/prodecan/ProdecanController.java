@@ -555,34 +555,30 @@ public class ProdecanController {
     @PostMapping("/conventie/aproba/{id}")
     public String aprobaConventie(@PathVariable int id, Authentication authentication, RedirectAttributes redirectAttributes) {
         try {
-            // Get the prodecan who approves
             User user = (User) authentication.getPrincipal();
             Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
             
-            // Check if prodecan has an uploaded signature
+            // DEBUG: Verifică semnătura prodecanului
+            System.out.println("DEBUG APROBARE: Prodecan: " + prodecan.getNumeComplet());
+            System.out.println("DEBUG APROBARE: Are semnătură: " + (prodecan.getSemnatura() != null));
+            if (prodecan.getSemnatura() != null) {
+                System.out.println("DEBUG APROBARE: Mărime semnătură: " + prodecan.getSemnatura().length + " bytes");
+            }
+            
             if (prodecan == null || prodecan.getSemnatura() == null) {
                 redirectAttributes.addFlashAttribute("errorMessage", 
                     "Nu puteți aproba convenția fără o semnătură încărcată. Vă rugăm să încărcați mai întâi semnătura în panoul de control.");
                 return "redirect:/prodecan/conventii";
             }
 
-            // Find the convention
             Conventie conventie = conventieRepository.findById(id);
             if (conventie != null) {
-                // Check if the convention is in the correct state for approval
-                if (conventie.getStatus() != ConventieStatus.APROBATA_PARTENER && 
-                    conventie.getStatus() != ConventieStatus.TRIMISA_TUTORE && 
-                    conventie.getStatus() != ConventieStatus.APROBATA_TUTORE &&
-                    conventie.getStatus() != ConventieStatus.IN_ASTEPTARE_PRODECAN) {
-                    redirectAttributes.addFlashAttribute("errorMessage", 
-                        "Convenția trebuie să treacă prin fluxul complet de aprobare!");
-                    return "redirect:/prodecan/conventii";
-                }
-                
-                // Set the status to await prorector approval instead of directly APROBATA
+                // Verificarea statusului...
                 conventie.setStatus(ConventieStatus.IN_ASTEPTARE_PRORECTOR);
                 conventie.setDataIntocmirii(new java.sql.Date(System.currentTimeMillis()));
                 conventieRepository.save(conventie);
+                
+                System.out.println("DEBUG APROBARE: Convenție aprobată cu status: " + conventie.getStatus());
                 
                 redirectAttributes.addFlashAttribute("successMessage", 
                     "Convenția a fost aprobată cu succes și trimisă către prorector pentru aprobarea finală!");
@@ -595,10 +591,12 @@ public class ProdecanController {
         
         return "redirect:/prodecan/conventii";
     }
-    
  // În ProdecanController
  // Modifică metoda pentru a accepta parametrul Authentication
-    private void addSignatureTable(Document document, Conventie conventie, Font font, Font boldFont, Authentication authentication) throws DocumentException{
+    private void addSignatureTable(Document document, Conventie conventie, Font font, Font boldFont, Authentication authentication) throws DocumentException {
+        User user = (User) authentication.getPrincipal();
+        Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
+        
         // Primul tabel - UPT, Partener, Student
         PdfPTable table = new PdfPTable(4);
         table.setWidthPercentage(100);
@@ -649,6 +647,7 @@ public class ProdecanController {
             conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE || 
             conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
             conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR ||
             conventie.getStatus() == ConventieStatus.APROBATA) {
             
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
@@ -687,14 +686,13 @@ public class ProdecanController {
             conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE || 
             conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
             conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR ||
             conventie.getStatus() == ConventieStatus.APROBATA) {
             
             try {
-                // Găsim partenerul după companie
                 List<Partner> partners = partnerRepository.findByCompanieId(conventie.getCompanie().getId());
                 Partner partner = null;
                 
-                // Căutăm primul partener cu semnătură
                 if (partners != null && !partners.isEmpty()) {
                     for (Partner p : partners) {
                         if (p.getSemnatura() != null) {
@@ -705,7 +703,6 @@ public class ProdecanController {
                 }
                 
                 if (partner != null && partner.getSemnatura() != null) {
-                    // Adăugăm semnătura partenerului
                     Image signature = Image.getInstance(partner.getSemnatura());
                     signature.scaleToFit(100, 50);
                     signature.setAlignment(Element.ALIGN_CENTER);
@@ -803,12 +800,22 @@ public class ProdecanController {
         // Data
         PdfPCell dataLabel2 = new PdfPCell(new Paragraph("Data", boldFont));
         dataLabel2.setHorizontalAlignment(Element.ALIGN_LEFT);
-        PdfPCell dataCadruDidactic = new PdfPCell(new Paragraph(".....", font));
+        
+        // Data pentru cadru didactic - dacă convenția a fost aprobată de prodecan
+        PdfPCell dataCadruDidactic = new PdfPCell();
+        if (conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+            dataCadruDidactic.addElement(new Paragraph(dateFormat.format(conventie.getDataIntocmirii()), font));
+        } else {
+            dataCadruDidactic.addElement(new Paragraph(".....", font));
+        }
         
         // Data pentru tutore - dacă convenția a fost aprobată de tutore
         PdfPCell dataTutore = new PdfPCell();
         if (conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
             conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR ||
             conventie.getStatus() == ConventieStatus.APROBATA) {
             
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
@@ -827,21 +834,53 @@ public class ProdecanController {
         // Semnătura
         PdfPCell semnLabel2 = new PdfPCell(new Paragraph("Semnătura", boldFont));
         semnLabel2.setHorizontalAlignment(Element.ALIGN_LEFT);
-        PdfPCell semnCadruDidactic = new PdfPCell(new Paragraph(".....", font));
+        
+        PdfPCell semnCadruDidactic = new PdfPCell();
+        semnCadruDidactic.setPaddingTop(20);
+
+        if (conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            
+            try {
+                // Găsește primul prodecan cu semnătură
+                List<Prodecan> prodecani = prodecanRepository.findAll();
+                Prodecan prodecanCuSemnatura = null;
+                
+                for (Prodecan p : prodecani) {
+                    if (p.getSemnatura() != null && p.getSemnatura().length > 0) {
+                        prodecanCuSemnatura = p;
+                        break;
+                    }
+                }
+                
+                if (prodecanCuSemnatura != null) {
+                    Image signature = Image.getInstance(prodecanCuSemnatura.getSemnatura());
+                    signature.scaleToFit(100, 50);
+                    signature.setAlignment(Element.ALIGN_CENTER);
+                    semnCadruDidactic.addElement(signature);
+                } else {
+                    semnCadruDidactic.addElement(new Paragraph("[Semnătură electronică]", font));
+                }
+            } catch (Exception e) {
+                semnCadruDidactic.addElement(new Paragraph(".....", font));
+            }
+        } else {
+            semnCadruDidactic.addElement(new Paragraph(".....", font));
+        }
+
         
         // Semnătura tutorelui - dacă convenția a fost aprobată de tutore
         PdfPCell semnTutore = new PdfPCell();
         if (conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
             conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR ||
             conventie.getStatus() == ConventieStatus.APROBATA) {
             
             try {
-                // Găsim tutorele după email
                 Tutore tutore = tutoreRepository.findByEmail(conventie.getTutore().getEmail())
                         .orElse(null);
                         
                 if (tutore != null && tutore.getSemnatura() != null) {
-                    // Adăugăm semnătura tutorelui
                     Image signature = Image.getInstance(tutore.getSemnatura());
                     signature.scaleToFit(100, 50);
                     signature.setAlignment(Element.ALIGN_CENTER);
@@ -853,9 +892,6 @@ public class ProdecanController {
                 e.printStackTrace();
                 semnTutore.addElement(new Paragraph(".....", font));
             }
-        } else if (conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN) {
-            // Convenția este în așteptare pentru prodecan
-            semnTutore.addElement(new Paragraph("[Semnătură electronică]", font));
         } else {
             semnTutore.addElement(new Paragraph(".....", font));
         }
@@ -891,7 +927,7 @@ public class ProdecanController {
     }
     
     private void addSignaturesTableWord(XWPFDocument document, Conventie conventie, Authentication authentication) {
-    	User user = (User) authentication.getPrincipal();
+        User user = (User) authentication.getPrincipal();
         Prodecan prodecan = prodecanRepository.findByEmail(user.getEmail());
         
         // Adăugăm textul despre întocmire
@@ -922,8 +958,9 @@ public class ProdecanController {
         XWPFTableRow dateRow = mainTable.getRow(2);
         setCellTextBold(dateRow.getCell(0), "Data");
         
-        // Data pentru prodecan
-        if (conventie.getStatus() == ConventieStatus.APROBATA && conventie.getDataIntocmirii() != null) {
+        // Data pentru rector/prodecan
+        if ((conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR || 
+            conventie.getStatus() == ConventieStatus.APROBATA) && conventie.getDataIntocmirii() != null) {
             setCellText(dateRow.getCell(1), formatDate(conventie.getDataIntocmirii()));
         } else {
             setCellText(dateRow.getCell(1), ".....");
@@ -942,9 +979,11 @@ public class ProdecanController {
         XWPFTableRow signRow = mainTable.getRow(3);
         setCellTextBold(signRow.getCell(0), "Semnătura");
         
-        // Semnătura prodecanului
+        // Semnătura prodecanului pentru rector
         XWPFTableCell prodecanCell = signRow.getCell(1);
-        if (conventie.getStatus() == ConventieStatus.APROBATA && prodecan != null && prodecan.getSemnatura() != null) {
+        if ((conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR || 
+            conventie.getStatus() == ConventieStatus.APROBATA) && 
+            prodecan != null && prodecan.getSemnatura() != null) {
             XWPFParagraph prodecanPara = prodecanCell.getParagraphs().get(0);
             prodecanPara.setAlignment(ParagraphAlignment.CENTER);
             prodecanPara.setSpacingBefore(400);
@@ -992,7 +1031,12 @@ public class ProdecanController {
             setCellText(studentCell, ".....");
         }
 
-        // ... codul pentru "Am luat la cunoștință" ...
+        // Adăugăm textul "Am luat la cunoștință"
+        XWPFParagraph amLuatPara = document.createParagraph();
+        XWPFRun amLuatRun = amLuatPara.createRun();
+        amLuatRun.setText("Am luat la cunoștință,");
+        amLuatRun.addBreak();
+        amLuatRun.addBreak();
 
         // Al doilea tabel
         XWPFTable secondTable = document.createTable(5, 3);
@@ -1018,13 +1062,66 @@ public class ProdecanController {
         // Data cu bold pentru etichetă
         XWPFTableRow secondDateRow = secondTable.getRow(3);
         setCellTextBold(secondDateRow.getCell(0), "Data");
-        setCellText(secondDateRow.getCell(1), ".....");
+        
+        // Data pentru cadru didactic - dacă convenția a fost aprobată de prodecan
+        if (conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            setCellText(secondDateRow.getCell(1), formatDate(conventie.getDataIntocmirii()));
+        } else {
+            setCellText(secondDateRow.getCell(1), ".....");
+        }
+        
         setCellText(secondDateRow.getCell(2), ".....");
 
         // Semnătura cu bold pentru etichetă
         XWPFTableRow secondSignRow = secondTable.getRow(4);
         setCellTextBold(secondSignRow.getCell(0), "Semnătura");
-        setCellText(secondSignRow.getCell(1), ".....");
+        
+        XWPFTableCell cadruDidacticCell = secondSignRow.getCell(1);
+        if (conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRORECTOR || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            
+            try {
+                // Găsește primul prodecan cu semnătură (cel care a semnat convenția)
+                List<Prodecan> prodecani = prodecanRepository.findAll();
+                Prodecan prodecanCuSemnatura = null;
+                
+                for (Prodecan p : prodecani) {
+                    if (p.getSemnatura() != null) {
+                        prodecanCuSemnatura = p;
+                        System.out.println("DEBUG WORD: Găsit prodecan cu semnătură: " + p.getNumeComplet());
+                        break;
+                    }
+                }
+                
+                if (prodecanCuSemnatura != null && prodecanCuSemnatura.getSemnatura() != null) {
+                    // Folosim semnătura PRODECANULUI pentru cadrul didactic supervizor
+                    XWPFParagraph cadruDidacticPara = cadruDidacticCell.getParagraphs().get(0);
+                    cadruDidacticPara.setAlignment(ParagraphAlignment.CENTER);
+                    cadruDidacticPara.setSpacingBefore(400);
+                    XWPFRun cadruDidacticRun = cadruDidacticPara.createRun();
+                    
+                    cadruDidacticRun.addPicture(
+                        new ByteArrayInputStream(prodecanCuSemnatura.getSemnatura()),
+                        XWPFDocument.PICTURE_TYPE_PNG,
+                        "signature.png",
+                        Units.toEMU(100),
+                        Units.toEMU(50)
+                    );
+                    System.out.println("DEBUG WORD: Semnătura prodecanului adăugată cu succes!");
+                } else {
+                    System.out.println("DEBUG WORD: Nu s-a găsit niciun prodecan cu semnătură!");
+                    setCellText(cadruDidacticCell, "[Semnătură electronică]");
+                }
+            } catch (Exception e) {
+                System.err.println("DEBUG WORD: Eroare la încărcarea semnăturii prodecanului: " + e.getMessage());
+                e.printStackTrace();
+                setCellText(cadruDidacticCell, ".....");
+            }
+        } else {
+            setCellText(cadruDidacticCell, ".....");
+        }
+        
         setCellText(secondSignRow.getCell(2), ".....");
     }
 
