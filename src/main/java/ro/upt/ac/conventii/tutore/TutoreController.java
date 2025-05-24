@@ -858,6 +858,8 @@ public class TutoreController {
         return document;
     }
     
+ // În TutoreController.java - Înlocuiește metoda addSignaturesTableWord cu aceasta:
+
     private void addSignaturesTableWord(XWPFDocument document, Conventie conventie, Tutore tutore) {
         // Adăugăm textul despre întocmire
         XWPFParagraph datePara = document.createParagraph();
@@ -887,16 +889,74 @@ public class TutoreController {
         XWPFTableRow dateRow = mainTable.getRow(2);
         setCellTextBold(dateRow.getCell(0), "Data");
         setCellText(dateRow.getCell(1), ".....");
-        setCellText(dateRow.getCell(2), ".....");
-        setCellText(dateRow.getCell(3), ".....");
+        
+        // Data pentru partener
+        if (conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.APROBATA_TUTORE ||
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            setCellText(dateRow.getCell(2), formatDate(conventie.getDataIntocmirii()));
+        } else {
+            setCellText(dateRow.getCell(2), ".....");
+        }
+        
+        // Data pentru student
+        if (conventie.getStatus() != ConventieStatus.NETRIMIS) {
+            setCellText(dateRow.getCell(3), formatDate(conventie.getDataIntocmirii()));
+        } else {
+            setCellText(dateRow.getCell(3), ".....");
+        }
 
         // A patra linie - Semnătura
         XWPFTableRow signRow = mainTable.getRow(3);
         setCellTextBold(signRow.getCell(0), "Semnătura");
         setCellText(signRow.getCell(1), ".....");
-        setCellText(signRow.getCell(2), ".....");
         
-        // Adăugăm semnătura studentului dacă există
+        // Semnătura partenerului
+        XWPFTableCell partnerCell = signRow.getCell(2);
+        if (conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.APROBATA_TUTORE ||
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            
+            XWPFParagraph partnerPara = partnerCell.getParagraphs().get(0);
+            partnerPara.setAlignment(ParagraphAlignment.CENTER);
+            partnerPara.setSpacingBefore(400);
+            XWPFRun partnerRun = partnerPara.createRun();
+            
+            try {
+                List<Partner> partners = partnerRepository.findByCompanieId(conventie.getCompanie().getId());
+                Partner partner = null;
+                
+                if (partners != null && !partners.isEmpty()) {
+                    for (Partner p : partners) {
+                        if (p.getSemnatura() != null) {
+                            partner = p;
+                            break;
+                        }
+                    }
+                }
+                
+                if (partner != null && partner.getSemnatura() != null) {
+                    partnerRun.addPicture(
+                        new ByteArrayInputStream(partner.getSemnatura()),
+                        XWPFDocument.PICTURE_TYPE_PNG,
+                        "signature.png",
+                        Units.toEMU(100),
+                        Units.toEMU(50)
+                    );
+                } else {
+                    partnerRun.setText("[Semnătură electronică]");
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                partnerRun.setText(".....");
+            }
+        } else {
+            setCellText(partnerCell, ".....");
+        }
+        
+        // Semnătura studentului
         XWPFTableCell studentCell = signRow.getCell(3);
         if (conventie.getStudent().getSemnatura() != null) {
             XWPFParagraph studentPara = studentCell.getParagraphs().get(0);
@@ -955,7 +1015,11 @@ public class TutoreController {
         
         // Data pentru tutore
         if (conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN ||
             conventie.getStatus() == ConventieStatus.APROBATA) {
+            SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
+            setCellText(tutorDateRow.getCell(2), dateFormat.format(new java.util.Date()));
+        } else if (conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE) {
             SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
             setCellText(tutorDateRow.getCell(2), dateFormat.format(new java.util.Date()));
         } else {
@@ -969,26 +1033,39 @@ public class TutoreController {
         
         // Semnătura tutore
         XWPFTableCell tutorSignCell = tutorSignRow.getCell(2);
-        if ((conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
-             conventie.getStatus() == ConventieStatus.APROBATA) && 
-             tutore.getSemnatura() != null) {
+        if (conventie.getStatus() == ConventieStatus.APROBATA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN ||
+            conventie.getStatus() == ConventieStatus.APROBATA) {
+            
+            if (tutore.getSemnatura() != null) {
+                XWPFParagraph tutorPara = tutorSignCell.getParagraphs().get(0);
+                tutorPara.setAlignment(ParagraphAlignment.CENTER);
+                tutorPara.setSpacingBefore(400);
+                XWPFRun tutorRun = tutorPara.createRun();
+                
+                try {
+                    tutorRun.addPicture(
+                        new ByteArrayInputStream(tutore.getSemnatura()),
+                        XWPFDocument.PICTURE_TYPE_PNG,
+                        "signature.png",
+                        Units.toEMU(100),
+                        Units.toEMU(50)
+                    );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    tutorRun.setText("[Semnătură electronică]");
+                }
+            } else {
+                XWPFParagraph tutorPara = tutorSignCell.getParagraphs().get(0);
+                tutorPara.setAlignment(ParagraphAlignment.CENTER);
+                XWPFRun tutorRun = tutorPara.createRun();
+                tutorRun.setText("[Semnătură electronică]");
+            }
+        } else if (conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE) {
             XWPFParagraph tutorPara = tutorSignCell.getParagraphs().get(0);
             tutorPara.setAlignment(ParagraphAlignment.CENTER);
-            tutorPara.setSpacingBefore(400);
             XWPFRun tutorRun = tutorPara.createRun();
-            
-            try {
-                tutorRun.addPicture(
-                    new ByteArrayInputStream(tutore.getSemnatura()),
-                    XWPFDocument.PICTURE_TYPE_PNG,
-                    "signature.png",
-                    Units.toEMU(100),
-                    Units.toEMU(50)
-                );
-            } catch (Exception e) {
-                e.printStackTrace();
-                tutorRun.setText(".....");
-            }
+            tutorRun.setText("(Veți semna electronic)");
         } else {
             setCellText(tutorSignCell, ".....");
         }

@@ -822,6 +822,10 @@ public class PartnerController {
     }
 
     
+ // În PartnerController.java - Înlocuiește metoda addSignaturesTableWord cu aceasta:
+
+ // În PartnerController.java - Înlocuiește metoda addSignaturesTableWord cu aceasta:
+
     private void addSignaturesTableWord(XWPFDocument document, Conventie conventie, Authentication authentication) {
         User user = (User) authentication.getPrincipal();
         Partner partner = partnerRepository.findByEmail(user.getEmail())
@@ -858,14 +862,21 @@ public class PartnerController {
         
         // Data pentru partener
         if (conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
+            conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.APROBATA_TUTORE ||
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
             conventie.getStatus() == ConventieStatus.APROBATA) {
-            SimpleDateFormat dateFormat = new SimpleDateFormat("dd.MM.yyyy");
-            setCellText(dateRow.getCell(2), dateFormat.format(new java.util.Date()));
+            setCellText(dateRow.getCell(2), formatDate(conventie.getDataIntocmirii()));
         } else {
             setCellText(dateRow.getCell(2), ".....");
         }
         
-        setCellText(dateRow.getCell(3), ".....");
+        // Data pentru student
+        if (conventie.getStatus() != ConventieStatus.NETRIMIS) {
+            setCellText(dateRow.getCell(3), formatDate(conventie.getDataIntocmirii()));
+        } else {
+            setCellText(dateRow.getCell(3), ".....");
+        }
 
         // A patra linie - Semnătura
         XWPFTableRow signRow = mainTable.getRow(3);
@@ -874,27 +885,38 @@ public class PartnerController {
         
         // Semnătura partenerului
         XWPFTableCell partnerCell = signRow.getCell(2);
-        if ((conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
-             conventie.getStatus() == ConventieStatus.APROBATA) && 
-             partner.getSemnatura() != null) {
+        if (conventie.getStatus() == ConventieStatus.APROBATA_PARTENER || 
+            conventie.getStatus() == ConventieStatus.TRIMISA_TUTORE || 
+            conventie.getStatus() == ConventieStatus.APROBATA_TUTORE ||
+            conventie.getStatus() == ConventieStatus.IN_ASTEPTARE_PRODECAN || 
+            conventie.getStatus() == ConventieStatus.APROBATA) {
             
             XWPFParagraph partnerPara = partnerCell.getParagraphs().get(0);
             partnerPara.setAlignment(ParagraphAlignment.CENTER);
             partnerPara.setSpacingBefore(400);
             XWPFRun partnerRun = partnerPara.createRun();
             
-            try {
-                partnerRun.addPicture(
-                    new ByteArrayInputStream(partner.getSemnatura()),
-                    XWPFDocument.PICTURE_TYPE_PNG,
-                    "signature.png",
-                    Units.toEMU(100),
-                    Units.toEMU(50)
-                );
-            } catch (Exception e) {
-                e.printStackTrace();
-                partnerRun.setText(".....");
+            if (partner.getSemnatura() != null) {
+                try {
+                    partnerRun.addPicture(
+                        new ByteArrayInputStream(partner.getSemnatura()),
+                        XWPFDocument.PICTURE_TYPE_PNG,
+                        "signature.png",
+                        Units.toEMU(100),
+                        Units.toEMU(50)
+                    );
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    partnerRun.setText("[Semnătură electronică]");
+                }
+            } else {
+                partnerRun.setText("[Semnătură electronică]");
             }
+        } else if (conventie.getStatus() == ConventieStatus.IN_ASTEPTARE) {
+            XWPFParagraph partnerPara = partnerCell.getParagraphs().get(0);
+            partnerPara.setAlignment(ParagraphAlignment.CENTER);
+            XWPFRun partnerRun = partnerPara.createRun();
+            partnerRun.setText("(Veți semna electronic)");
         } else {
             setCellText(partnerCell, ".....");
         }
@@ -930,10 +952,43 @@ public class PartnerController {
         amLuatRun.addBreak();
         amLuatRun.addBreak();
 
-        // Al doilea tabel pentru supervizori - similar cu cel din metodele existente
-        // ...
-    }
+        // Al doilea tabel pentru supervizori
+        XWPFTable supervisorsTable = document.createTable(5, 3);
 
+        // Header
+        XWPFTableRow supervisorsHeader = supervisorsTable.getRow(0);
+        supervisorsHeader.getCell(0).setText("");
+        setCellTextBold(supervisorsHeader.getCell(1), "Cadru didactic supervizor");
+        setCellTextBold(supervisorsHeader.getCell(2), "Tutore");
+
+        // Nume și prenume
+        XWPFTableRow nameRow2 = supervisorsTable.getRow(1);
+        setCellTextBold(nameRow2.getCell(0), "Nume și prenume");
+        setCellText(nameRow2.getCell(1), conventie.getCadruDidactic().getNumeComplet());
+        setCellText(nameRow2.getCell(2), conventie.getTutore().getNume() + " " + conventie.getTutore().getPrenume());
+        
+        // Funcția
+        XWPFTableRow funcRow = supervisorsTable.getRow(2);
+        setCellTextBold(funcRow.getCell(0), "Funcția");
+        setCellText(funcRow.getCell(1), conventie.getCadruDidactic().getFunctie());
+        setCellText(funcRow.getCell(2), conventie.getTutore().getFunctie());
+        
+        // Data
+        XWPFTableRow dateRow2 = supervisorsTable.getRow(3);
+        setCellTextBold(dateRow2.getCell(0), "Data");
+        setCellText(dateRow2.getCell(1), ".....");
+        // Data pentru tutore - doar câmpul, fără data efectivă
+        setCellText(dateRow2.getCell(2), ".....");
+        
+        // Semnătura
+        XWPFTableRow signRow2 = supervisorsTable.getRow(4);
+        setCellTextBold(signRow2.getCell(0), "Semnătura");
+        setCellText(signRow2.getCell(1), ".....");
+        
+        // Semnătura tutorelui - doar câmpul, fără semnătura efectivă
+        XWPFTableCell tutoreCell = signRow2.getCell(2);
+        setCellText(tutoreCell, ".....");
+    }
    
 
     private void setCellTextBold(XWPFTableCell cell, String text) {
