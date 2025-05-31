@@ -451,79 +451,79 @@ public class ProdecanController {
                 return "redirect:/prodecan/companie-create";
             }
             
+            // Validări pentru noile câmpuri
+            if (companie.getNumeReprezentant() == null || companie.getNumeReprezentant().trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Numele reprezentantului este obligatoriu!");
+                return "redirect:/prodecan/companie-create";
+            }
+            
+            if (companie.getPrenumeReprezentant() == null || companie.getPrenumeReprezentant().trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Prenumele reprezentantului este obligatoriu!");
+                return "redirect:/prodecan/companie-create";
+            }
+            
+            if (companie.getFunctie() == null || companie.getFunctie().trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Funcția reprezentantului este obligatorie!");
+                return "redirect:/prodecan/companie-create";
+            }
+            
             // Salvăm compania
             companieRepository.save(companie);
             
-            // Obținem compania cu ID după salvare pentru a ne asigura că avem ID-ul corect
+            // Obținem compania cu ID după salvare
             Companie savedCompanie = companieRepository.findById(companie.getId())
                 .orElseThrow(() -> new RuntimeException("Compania cu ID " + companie.getId() + " nu a fost găsită"));
             
-            // Verificăm dacă compania a fost salvată corect și are ID
+            // Verificăm dacă compania a fost salvată corect
             if (savedCompanie.getId() == 0) {
                 throw new RuntimeException("Compania a fost salvată dar nu are un ID valid!");
             }
             
-            // Verificăm dacă avem toate datele pentru a crea un partener
-            if (savedCompanie.getReprezentant() != null && !savedCompanie.getReprezentant().isEmpty() &&
-                savedCompanie.getEmail() != null && !savedCompanie.getEmail().isEmpty()) {
-                
-                // Extragem numele și prenumele din reprezentant
-                String[] numeParts = savedCompanie.getReprezentant().trim().split("\\s+");
-                String nume = numeParts.length > 0 ? numeParts[numeParts.length - 1] : savedCompanie.getReprezentant();
-                
-                StringBuilder prenumeBuilder = new StringBuilder();
-                for (int i = 0; i < numeParts.length - 1; i++) {
-                    if (i > 0) prenumeBuilder.append(" ");
-                    prenumeBuilder.append(numeParts[i]);
-                }
-                String prenume = prenumeBuilder.toString();
-                if (prenume.isEmpty()) prenume = "Reprezentant";
-                
-                // Creăm partenerul folosind obiectul companie salvat
-                Partner partner = new Partner();
-                partner.setCompanie(savedCompanie); // Folosim compania salvată
-                partner.setNume(nume);
-                partner.setPrenume(prenume);
-                partner.setFunctie(savedCompanie.getCalitate() != null ? savedCompanie.getCalitate() : "Reprezentant Legal");
-                partner.setEmail(savedCompanie.getEmail());
-                partner.setTelefon(savedCompanie.getTelefon());
-                
-                // Salvăm partenerul
-                Partner savedPartner = partnerRepository.save(partner);
-                
-                // Verifică dacă partenerul a fost salvat corect
-                if (savedPartner == null || savedPartner.getId() == 0) {
-                    throw new RuntimeException("Partenerul nu a putut fi salvat corect!");
-                }
-                
-                // Creăm cont de utilizator
-                String temporaryPassword = "password";
-                User userPartner = new User();
-                userPartner.setEmail(partner.getEmail());
-                userPartner.setNume(partner.getNume());
-                userPartner.setPrenume(partner.getPrenume());
-                userPartner.setPassword(passwordEncoder.encode(temporaryPassword));
-                userPartner.setRole("ROLE_PARTNER");
-                userPartner.setEnabled(true);
-                userPartner.setFirstLogin(true);
-                
-                userRepository.save(userPartner);
-                
-                redirectAttributes.addFlashAttribute("successMessage", 
-                    "Companie creată cu succes! A fost creat automat și un cont de partener pentru reprezentant.\n" +
-                    "----------------------------------------\n" +
-                    "Email: " + partner.getEmail() + "\n" +
-                    "PAROLA TEMPORARĂ: " + temporaryPassword + "\n" +
-                    "----------------------------------------\n" +
-                    "IMPORTANT: Salvați această parolă!");
-            } else {
-                // Compania a fost creată, dar nu avem suficiente date pentru partener
-                redirectAttributes.addFlashAttribute("successMessage", 
-                    "Companie creată cu succes! Nu s-a putut crea automat un cont de partener " +
-                    "deoarece lipsesc date esențiale (email sau reprezentant).");
+            // Creăm automat partenerul
+            Partner partner = new Partner();
+            partner.setCompanie(savedCompanie);
+            partner.setNume(companie.getNumeReprezentant());
+            partner.setPrenume(companie.getPrenumeReprezentant());
+            partner.setFunctie(companie.getFunctie());
+            partner.setEmail(companie.getEmail());
+            partner.setTelefon(companie.getTelefon());
+            
+            // Salvăm partenerul
+            Partner savedPartner = partnerRepository.save(partner);
+            
+            // Verifică dacă partenerul a fost salvat corect
+            if (savedPartner == null || savedPartner.getId() == 0) {
+                throw new RuntimeException("Partenerul nu a putut fi salvat corect!");
             }
+            
+            // Creăm cont de utilizator cu parola formată din nume+prenume
+            String temporaryPassword = companie.getPrenumeReprezentant() + companie.getNumeReprezentant();
+            User userPartner = new User();
+            userPartner.setEmail(partner.getEmail());
+            userPartner.setNume(partner.getNume());
+            userPartner.setPrenume(partner.getPrenume());
+            userPartner.setPassword(passwordEncoder.encode(temporaryPassword));
+            userPartner.setRole("ROLE_PARTNER");
+            userPartner.setEnabled(true);
+            userPartner.setFirstLogin(true);
+            
+            userRepository.save(userPartner);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Companie creată cu succes!\n" +
+                "A fost creat automat și un cont de partener pentru reprezentant.\n" +
+                "----------------------------------------\n" +
+                "Reprezentant: " + partner.getPrenume() + " " + partner.getNume() + "\n" +
+                "Email: " + partner.getEmail() + "\n" +
+                "PAROLA: " + temporaryPassword + "\n" +
+                "----------------------------------------\n" +
+                "IMPORTANT: Salvați această parolă!");
                     
             return "redirect:/prodecan/companii";
+            
         } catch (Exception e) {
             // Verificăm dacă eroarea este cauzată de cheie duplicată
             if (e.getMessage() != null && e.getMessage().contains("Duplicate entry")) {
@@ -1204,25 +1204,135 @@ public class ProdecanController {
         return "redirect:/prodecan/companii";
     }
 
-    // Salvare modificări companie
+ // Salvare modificări companie - actualizată pentru noua structură
     @PostMapping("/companie-edit/{id}")
-    public String updateCompanie(@PathVariable int id, @ModelAttribute Companie companie) {
-        companie.setId(id);
-        companieRepository.save(companie);
-        // Modificat redirect către pagina prodecanului
-        return "redirect:/prodecan/companii";
+    public String updateCompanie(@PathVariable int id, @ModelAttribute Companie companie, RedirectAttributes redirectAttributes) {
+        try {
+            // Găsim compania existentă
+            Companie existingCompanie = companieRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Compania cu ID " + id + " nu a fost găsită"));
+            
+            // Validări pentru noile câmpuri
+            if (companie.getNumeReprezentant() == null || companie.getNumeReprezentant().trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Numele reprezentantului este obligatoriu!");
+                return "redirect:/prodecan/companie-edit/" + id;
+            }
+            
+            if (companie.getPrenumeReprezentant() == null || companie.getPrenumeReprezentant().trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Prenumele reprezentantului este obligatoriu!");
+                return "redirect:/prodecan/companie-edit/" + id;
+            }
+            
+            if (companie.getFunctie() == null || companie.getFunctie().trim().isEmpty()) {
+                redirectAttributes.addFlashAttribute("errorMessage", 
+                    "Funcția reprezentantului este obligatorie!");
+                return "redirect:/prodecan/companie-edit/" + id;
+            }
+            
+            // Salvăm email-ul original pentru a găsi partenerul
+            String originalEmail = existingCompanie.getEmail();
+            
+            // Actualizăm compania
+            existingCompanie.setNume(companie.getNume());
+            existingCompanie.setNumeReprezentant(companie.getNumeReprezentant());
+            existingCompanie.setPrenumeReprezentant(companie.getPrenumeReprezentant());
+            existingCompanie.setFunctie(companie.getFunctie());
+            existingCompanie.setAdresa(companie.getAdresa());
+            existingCompanie.setTelefon(companie.getTelefon());
+            existingCompanie.setCui(companie.getCui());
+            existingCompanie.setNrRegCom(companie.getNrRegCom());
+            
+            // Notă: Email-ul nu se poate schimba pentru a menține integritatea cu partenerul
+            // existingCompanie.setEmail(companie.getEmail()); // Comentat intenționat
+            
+            companieRepository.save(existingCompanie);
+            
+            // Actualizăm și partenerul asociat
+            List<Partner> partneriAsociati = partnerRepository.findByCompanie(existingCompanie);
+            if (!partneriAsociati.isEmpty()) {
+                Partner partner = partneriAsociati.get(0); // Luăm primul partener asociat
+                partner.setNume(companie.getNumeReprezentant());
+                partner.setPrenume(companie.getPrenumeReprezentant());
+                partner.setFunctie(companie.getFunctie());
+                partner.setTelefon(companie.getTelefon());
+                
+                partnerRepository.save(partner);
+                
+                // Actualizăm și contul de utilizator al partenerului
+                User userPartner = userRepository.findByEmail(originalEmail);
+                if (userPartner != null) {
+                    userPartner.setNume(companie.getNumeReprezentant());
+                    userPartner.setPrenume(companie.getPrenumeReprezentant());
+                    userRepository.save(userPartner);
+                }
+            }
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Compania a fost actualizată cu succes! Datele partenerului asociat au fost actualizate automat.");
+            
+            return "redirect:/prodecan/companii";
+            
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la actualizarea companiei: " + e.getMessage());
+            return "redirect:/prodecan/companie-edit/" + id;
+        }
     }
 
-    // Ștergere companie
+ // Ștergere companie - actualizată pentru a șterge și partenerul asociat
     @GetMapping("/companie-delete/{id}")
-    public String deleteCompanie(@PathVariable int id) {
-    	Companie companie = companieRepository.findById(id)
-    		    .orElseThrow(() -> new RuntimeException("Compania cu ID " + id + " nu a fost găsită"));
+    public String deleteCompanie(@PathVariable int id, RedirectAttributes redirectAttributes) {
+        try {
+            Companie companie = companieRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Compania cu ID " + id + " nu a fost găsită"));
 
-        if (companie != null) {
-            companieRepository.delete(companie);
+            if (companie != null) {
+                // Verificăm dacă există convenții asociate acestei companii
+                List<Conventie> conventiiAsociate = conventieRepository.findByCompanie(companie);
+                if (!conventiiAsociate.isEmpty()) {
+                    redirectAttributes.addFlashAttribute("errorMessage", 
+                        "Nu se poate șterge compania deoarece există " + conventiiAsociate.size() + 
+                        " convenții asociate! Ștergeți mai întâi convențiile.");
+                    return "redirect:/prodecan/companii";
+                }
+                
+                // Găsim și ștergem partenerii asociați companiei
+                List<Partner> partneriAsociati = partnerRepository.findByCompanie(companie);
+                for (Partner partner : partneriAsociati) {
+                    // Ștergem contul de utilizator al partnerului
+                    User userPartner = userRepository.findByEmail(partner.getEmail());
+                    if (userPartner != null) {
+                        userRepository.delete(userPartner);
+                    }
+                    // Ștergem partenerul
+                    partnerRepository.delete(partner);
+                }
+                
+                // Găsim și ștergem tutorii asociați companiei (dacă există)
+                List<Tutore> tutoriAsociati = tutoreRepository.findByCompanie(companie);
+                for (Tutore tutore : tutoriAsociati) {
+                    // Ștergem contul de utilizator al tutorelui
+                    User userTutore = userRepository.findByEmail(tutore.getEmail());
+                    if (userTutore != null) {
+                        userRepository.delete(userTutore);
+                    }
+                    // Ștergem tutorele
+                    tutoreRepository.delete(tutore);
+                }
+                
+                // În final, ștergem compania
+                companieRepository.delete(companie);
+                
+                redirectAttributes.addFlashAttribute("successMessage", 
+                    "Compania a fost ștearsă cu succes împreună cu " + partneriAsociati.size() + 
+                    " parteneri asociați și " + tutoriAsociati.size() + " tutori asociați!");
+            }
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la ștergerea companiei: " + e.getMessage());
         }
-        // Modificat redirect către pagina prodecanului
         return "redirect:/prodecan/companii";
     }
   
