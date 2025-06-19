@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Detalii Convenție - Tutore</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/tutore/dashboard">
+                <i class="fas fa-chalkboard-teacher me-2"></i>Portal Convenții - Tutore
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="/tutore/conventii">
+                            <i class="fas fa-file-signature me-1"></i>Convenții
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-user me-1"></i>
+                            <span th:text="${tutore.numeComplet + ' (' + tutore.companie.nume + ')'}">Nume Tutore (Companie)</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post">
+                            <button class="btn btn-link nav-link" type="submit">
+                                <i class="fas fa-sign-out-alt me-1"></i>Deconectare
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Mesaje de succes/eroare -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">
+                <i class="fas fa-file-contract me-2"></i>Detalii Convenție
+            </h3>
+            
+            <div class="btn-group">
+            <a th:href="@{'/tutore/conventie-export/' + ${conventie.id}}" 
+   class="btn btn-info" 
+   title="Vizualizează în browser"
+   target="_blank">
+    <i class="fas fa-eye me-1"></i>HTML
+</a>
+                <a href="/tutore/conventii" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Înapoi la lista de convenții
+                </a>
+                <a th:href="@{'/tutore/conventie-export-pdf/' + ${conventie.id}}" class="btn btn-danger" title="Export PDF">
+                    <i class="fas fa-file-pdf me-1"></i>PDF
+                </a>
+                <a th:href="@{'/tutore/conventie-export-word/' + ${conventie.id}}" class="btn btn-success" title="Export Word">
+                    <i class="fas fa-file-word me-1"></i>Word
+                </a>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between">
+                <h5 class="mb-0">Informații Generale</h5>
+                <span th:class="${'badge ' + 
+                            (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).TRIMISA_TUTORE ? 'bg-warning' : '') +
+                            (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA_TUTORE ? 'bg-info' : '') +
+                            (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).APROBATA ? 'bg-success' : '') +
+                            (conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).RESPINSA ? 'bg-danger' : '')}"
+                      th:text="${conventie.status}">Status
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Data întocmirii:</h6>
+                        <p class="mb-0" th:text="${conventie.dataIntocmirii != null ? #dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy') : 'N/A'}">01.01.2023</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Nume proiect:</h6>
+                        <p class="mb-0" th:text="${conventie.numeProiect}">Nume Proiect</p>
+                    </div>
+                </div>
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Perioada de practică:</h6>
+                        <p class="mb-0">
+                            <span th:text="${conventie.dataInceput != null ? #dates.format(conventie.dataInceput, 'dd.MM.yyyy') : 'N/A'}"></span> -
+                            <span th:text="${conventie.dataSfarsit != null ? #dates.format(conventie.dataSfarsit, 'dd.MM.yyyy') : 'N/A'}"></span>
+                        </p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-2">Locul desfășurării:</h6>
+                        <p class="mb-0" th:text="${conventie.loculDesfasurarii}">Locul Desfășurării</p>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <h6 class="text-muted mb-2">Durată în ore:</h6>
+                        <p class="mb-0" th:text="${conventie.durataInPlanulDeInvatamant}">240</p>
+                    </div>
+                    <div class="col-md-4">
+                        <h6 class="text-muted mb-2">Număr credite:</h6>
+                        <p class="mb-0" th:text="${conventie.numarCredite}">8</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Informații Student</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <h6 class="text-muted mb-2">Nume complet:</h6>
+                                <p class="mb-0" th:text="${conventie.student.numeComplet}">Nume Student</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Facultate:</h6>
+                                <p class="mb-0" th:text="${conventie.student.facultate}">Facultate</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Specializare:</h6>
+                                <p class="mb-0" th:text="${conventie.student.specializare}">Specializare</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">An de studiu:</h6>
+                                <p class="mb-0" th:text="${conventie.student.anDeStudiu}">3</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Anul universitar:</h6>
+                                <p class="mb-0" th:text="${conventie.student.anUniversitar}">2023-2024</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Email:</h6>
+                                <p class="mb-0" th:text="${conventie.student.email}">student@example.com</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Telefon:</h6>
+                                <p class="mb-0" th:text="${conventie.student.telefon}">0712345678</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0">Informații Cadru Didactic</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <h6 class="text-muted mb-2">Nume complet:</h6>
+                                <p class="mb-0" th:text="${conventie.cadruDidactic.numeComplet}">Nume Cadru Didactic</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <h6 class="text-muted mb-2">Funcție:</h6>
+                                <p class="mb-0" th:text="${conventie.cadruDidactic.functie}">Profesor</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Email:</h6>
+                                <p class="mb-0" th:text="${conventie.cadruDidactic.email}">profesor@example.com</p>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="text-muted mb-2">Telefon:</h6>
+                                <p class="mb-0" th:text="${conventie.cadruDidactic.telefon}">0712345678</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header bg-info bg-opacity-25">
+                        <h5 class="mb-0">Informațiile mele ca tutore</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3">
+                                <h6 class="text-muted mb-2">Nume și prenume:</h6>
+                                <p class="mb-0" th:text="${conventie.tutore.nume + ' ' + conventie.tutore.prenume}">Nume Tutore</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted mb-2">Funcție:</h6>
+                                <p class="mb-0" th:text="${conventie.tutore.functie}">Funcție</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted mb-2">Email:</h6>
+                                <p class="mb-0" th:text="${conventie.tutore.email}">tutore@example.com</p>
+                            </div>
+                            <div class="col-md-3">
+                                <h6 class="text-muted mb-2">Telefon:</h6>
+                                <p class="mb-0" th:text="${conventie.tutore.telefon}">0712345678</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-md-12">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">Condiții Facultative</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <h6 class="text-muted mb-2">Indemnizații, gratificări sau prime:</h6>
+                                <p class="mb-0" th:text="${conventie.indemnizatii != null && !conventie.indemnizatii.isEmpty() ? conventie.indemnizatii : 'Nu este cazul'}">Nu este cazul</p>
+                            </div>
+                        </div>
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <h6 class="text-muted mb-2">Avantaje eventuale:</h6>
+                                <p class="mb-0" th:text="${conventie.avantaje != null && !conventie.avantaje.isEmpty() ? conventie.avantaje : 'Nu este cazul'}">Nu este cazul</p>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-12">
+                                <h6 class="text-muted mb-2">Alte precizări:</h6>
+                                <p class="mb-0" th:text="${conventie.altePrecizari != null && !conventie.altePrecizari.isEmpty() ? conventie.altePrecizari : 'Nu este cazul'}">Nu este cazul</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <<!-- În tutore/tutore-convention-view.html - actualizează condiția pentru acțiuni -->
+<div th:if="${conventie.status == T(ro.upt.ac.conventii.conventie.ConventieStatus).IN_ASTEPTARE_TUTORE}" class="card">
+    <div class="card-header bg-warning bg-opacity-25">
+        <h5 class="mb-0">Acțiuni</h5>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p>Această convenție așteaptă aprobarea dumneavoastră în calitate de tutore.</p>
+            </div>
+            <div class="col-md-6 text-end">
+                <form th:action="@{'/tutore/conventie/aproba/' + ${conventie.id}}" method="post" class="d-inline me-2">
+                    <button type="submit" class="btn btn-success" 
+                            onclick="return confirm('Confirmați aprobarea convenției?')">
+                        <i class="fas fa-check me-2"></i>Aprobă Convenția
+                    </button>
+                </form>
+                <form th:action="@{'/tutore/conventie/respinge/' + ${conventie.id}}" method="post" class="d-inline">
+                    <button type="submit" class="btn btn-danger" 
+                            onclick="return confirm('Sigur doriți să respingeți convenția?')">
+                        <i class="fas fa-times me-2"></i>Respinge
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Formular Student - Prodecan</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/prodecan/dashboard">
+                <i class="fas fa-university me-2"></i>Portal Convenții - Prodecan
+            </a>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-user-graduate me-2"></i>Adăugare Student Nou
+                </h5>
+            </div>
+            <div class="card-body">
+            
+             <form th:action="@{${student.id != null ? '/prodecan/student-edit/' + student.id : '/prodecan/student-create'}}"
+                      th:object="${student}" 
+                      method="post">
+                    
+                    <!-- Adăugăm un câmp ascuns pentru ID -->
+                    <input type="hidden" th:field="*{id}" />
+                <form action="/prodecan/student-create" method="post" th:object="${student}">
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="nume" class="form-label">Nume</label>
+                            <input type="text" class="form-control" id="nume" th:field="*{nume}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="prenume" class="form-label">Prenume</label>
+                            <input type="text" class="form-control" id="prenume" th:field="*{prenume}" required>
+                        </div>
+                    </div>
+
+    <div class="row mb-3">
+    <div class="col-md-6">
+        <label for="email" class="form-label">Email:</label>
+        <input type="email" 
+               class="form-control" 
+               id="email" 
+               th:field="*{email}" 
+               th:readonly="${student.id != null && student.id > 0}"
+               required>
+    </div>
+    <div class="col-md-6">
+        <label for="telefon" class="form-label">Telefon:</label>
+        <input type="text" class="form-control" id="telefon" th:field="*{telefon}" required>
+    </div>
+</div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="facultate" class="form-label">Facultate</label>
+                            <input type="text" class="form-control" id="facultate" th:field="*{facultate}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="specializare" class="form-label">Specializare</label>
+                            <input type="text" class="form-control" id="specializare" th:field="*{specializare}" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="cnp" class="form-label">CNP</label>
+                            <input type="text" class="form-control" id="cnp" th:field="*{cnp}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="dataNasterii" class="form-label">Data Nașterii</label>
+                            <input type="date" class="form-control" id="dataNasterii" th:field="*{dataNasterii}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="loculNasterii" class="form-label">Locul Nașterii</label>
+                            <input type="text" class="form-control" id="loculNasterii" th:field="*{loculNasterii}" required>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-4">
+                            <label for="cetatenie" class="form-label">Cetățenie</label>
+                            <input type="text" class="form-control" id="cetatenie" th:field="*{cetatenie}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="serieCi" class="form-label">Serie CI</label>
+                            <input type="text" class="form-control" id="serieCi" th:field="*{serieCi}" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="numarCi" class="form-label">Număr CI</label>
+                            <input type="text" class="form-control" id="numarCi" th:field="*{numarCi}" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="adresa" class="form-label">Adresa</label>
+                        <input type="text" class="form-control" id="adresa" th:field="*{adresa}" required>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-md-6">
+                            <label for="anUniversitar" class="form-label">An Universitar (ex: 2023-2024)</label>
+                            <input type="text" class="form-control" id="anUniversitar" th:field="*{anUniversitar}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="anDeStudiu" class="form-label">An de Studiu</label>
+                            <select class="form-control" id="anDeStudiu" th:field="*{anDeStudiu}" required>
+                                <option value="1">Anul 1</option>
+                                <option value="2">Anul 2</option>
+                                <option value="3">Anul 3</option>
+                                <option value="4">Anul 4</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-1"></i>Salvează
+                        </button>
+                        <a href="/prodecan/studenti" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-1"></i>Înapoi
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

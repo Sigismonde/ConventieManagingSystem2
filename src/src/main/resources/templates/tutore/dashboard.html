@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Dashboard Tutore</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+        <div class="container">
+            <a class="navbar-brand" href="/tutore/dashboard">
+                <i class="fas fa-chalkboard-teacher me-2"></i>Portal Convenții - Tutore
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    <li class="nav-item">
+                        <a class="nav-link active" href="/tutore/conventii">
+                            <i class="fas fa-file-signature me-1"></i>Convenții
+                        </a>
+                    </li>
+                </ul>
+                <ul class="navbar-nav">
+                    <li class="nav-item">
+                        <span class="nav-link">
+                            <i class="fas fa-user me-1"></i>
+                            <span th:text="${tutore.numeComplet + ' (' + companie.nume + ')'}">Nume Tutore (Companie)</span>
+                        </span>
+                    </li>
+                    <li class="nav-item">
+                        <form th:action="@{/logout}" method="post">
+                            <button class="btn btn-link nav-link" type="submit">
+                                <i class="fas fa-sign-out-alt me-1"></i>Deconectare
+                            </button>
+                        </form>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-4">
+        <!-- Mesaje de succes/eroare -->
+        <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            <span th:text="${successMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+        <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <span th:text="${errorMessage}"></span>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+
+        <!-- Card de bun venit -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="row align-items-center">
+                    <div class="col-auto">
+                        <i class="fas fa-chalkboard-teacher fa-3x text-primary"></i>
+                    </div>
+                    <div class="col">
+                        <h5 class="card-title mb-1">Bine ați venit, <span th:text="${tutore.numeComplet}">Nume Tutore</span>!</h5>
+                        <p class="card-text mb-0">
+                            <span class="badge bg-info me-2" th:text="${companie.nume}">Nume Companie</span>
+                            <span class="badge bg-secondary" th:text="${tutore.functie}">Funcție</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistici -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card text-center bg-warning text-white h-100">
+                    <div class="card-body">
+                        <i class="fas fa-hourglass-half fa-3x mb-3"></i>
+                        <h5 class="card-title">Convenții în Așteptare</h5>
+                        <p class="card-text display-4" th:text="${conventiiTrimise != null ? conventiiTrimise.size() : 0}">0</p>
+                        <a th:if="${conventiiTrimise != null && !conventiiTrimise.empty}" href="/tutore/conventii" class="btn btn-light mt-3">Verifică convențiile</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card text-center bg-success text-white h-100">
+                    <div class="card-body">
+                        <i class="fas fa-check-circle fa-3x mb-3"></i>
+                        <h5 class="card-title">Convenții Aprobate</h5>
+                        <p class="card-text display-4" th:text="${conventiiAprobate != null ? conventiiAprobate.size() : 0}">0</p>
+                        <a th:if="${conventiiAprobate != null && !conventiiAprobate.empty}" href="/tutore/conventii" class="btn btn-light mt-3">Vezi toate</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Convenții în Așteptare -->
+        <div class="card mb-4">
+            <div class="card-header bg-warning bg-opacity-25">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-clock me-2"></i>Convenții în Așteptare de Aprobare
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Perioada</th>
+                                <th>Proiect</th>
+                                <th>Data Întocmirii</th>
+                                <th>Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${conventiiTrimise == null || conventiiTrimise.empty}">
+                                <td colspan="5" class="text-center">Nu există convenții în așteptare.</td>
+                            </tr>
+                            <tr th:each="conventie : ${conventiiTrimise}">
+                                <td th:text="${conventie.student != null ? conventie.student.numeComplet : 'N/A'}">Nume Student</td>
+                                <td>
+                                    <span th:text="${conventie.dataInceput != null ? #dates.format(conventie.dataInceput, 'dd.MM.yyyy') : 'N/A'}"></span> -
+                                    <span th:text="${conventie.dataSfarsit != null ? #dates.format(conventie.dataSfarsit, 'dd.MM.yyyy') : 'N/A'}"></span>
+                                </td>
+                                <td th:text="${conventie.numeProiect}">Nume Proiect</td>
+                                <td th:text="${conventie.dataIntocmirii != null ? #dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy') : 'N/A'}">Data Întocmirii</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <!-- Vizualizare -->
+                                       <a th:href="@{'/tutore/conventie-export/' + ${conventie.id}}" 
+   class="btn btn-primary btn-sm me-1" 
+   title="Vizualizează"
+   target="_blank">
+    <i class="fas fa-eye"></i>
+</a>
+                                        <!-- Aprobare -->
+                                        <form th:action="@{'/tutore/conventie/aproba/' + ${conventie.id}}" method="post" class="d-inline me-1">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Aprobă" 
+                                                    onclick="return confirm('Confirmați aprobarea convenției?')">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        <!-- Respingere -->
+                                        <form th:action="@{'/tutore/conventie/respinge/' + ${conventie.id}}" method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Respinge"
+                                                    onclick="return confirm('Sigur doriți să respingeți convenția?')">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        <!-- Card Semnătură Digitală -->
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">
+                    <i class="fas fa-signature me-2"></i>Semnătură Digitală
+                </h5>
+            </div>
+            <div class="card-body">
+                <form th:action="@{/tutore/upload-semnatura}" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="semnatura" class="form-label">Încărcați semnătura digitală (imagine)</label>
+                        <input type="file" 
+                               class="form-control" 
+                               id="semnatura" 
+                               name="semnatura" 
+                               accept="image/*" 
+                               required>
+                        <small class="text-muted">Formate acceptate: JPG, PNG. Mărime maximă: 2MB</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-upload me-2"></i>Încarcă Semnătura
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Convenții recent aprobate -->
+        <div class="card">
+            <div class="card-header bg-success bg-opacity-25">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-check-circle me-2"></i>Convenții Aprobate Recent
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Student</th>
+                                <th>Perioada</th>
+                                <th>Proiect</th>
+                                <th>Data Aprobării</th>
+                                <th>Acțiuni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:if="${conventiiAprobate == null || conventiiAprobate.empty}">
+                                <td colspan="5" class="text-center">Nu există convenții aprobate recent.</td>
+                            </tr>
+                            <tr th:each="conventie : ${conventiiAprobate}">
+                                <td th:text="${conventie.student != null ? conventie.student.numeComplet : 'N/A'}">Nume Student</td>
+                                <td>
+                                    <span th:text="${conventie.dataInceput != null ? #dates.format(conventie.dataInceput, 'dd.MM.yyyy') : 'N/A'}"></span> -
+                                    <span th:text="${conventie.dataSfarsit != null ? #dates.format(conventie.dataSfarsit, 'dd.MM.yyyy') : 'N/A'}"></span>
+                                </td>
+                                <td th:text="${conventie.numeProiect}">Nume Proiect</td>
+                                <td th:text="${conventie.dataIntocmirii != null ? #dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy') : 'N/A'}">Data Aprobării</td>
+                                <td>
+                                    <div class="btn-group">
+                                        <a th:href="@{'/tutore/conventie-export/' + ${conventie.id}}" 
+   class="btn btn-primary btn-sm me-1" 
+   title="Vizualizează"
+   target="_blank">
+    <i class="fas fa-eye"></i>
+</a>
+                                        <a th:href="@{'/tutore/conventie-export-pdf/' + ${conventie.id}}" class="btn btn-danger btn-sm me-1" title="Export PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+                                        <a th:href="@{'/tutore/conventie-export-word/' + ${conventie.id}}" class="btn btn-success btn-sm" title="Export Word">
+                                            <i class="fas fa-file-word"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

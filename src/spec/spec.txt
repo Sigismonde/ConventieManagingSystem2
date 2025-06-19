@@ -1,0 +1,43 @@
+
+- se cere sa se scrie o aplicatie web utilizand tehnologiile
+ - Java
+ - Apache POI (pentru creare de fisiere DOCX)
+ - MySQL
+ - SpringBoot
+ - Thymeleaf
+
+- se scrie aplicatie web ce gestioneaza conventiile de practica a studentilor
+
+Interfata prodecan
+
+- login pe baza de email si parola
+
+- aplicatia trebuie sa poata incarca studentii pe baza de fisier CSV
+
+- studentii au nume, prenume, adresa de email, telefon, specializare (cti-ro, cti-en, ism info-zi, info-id) in acel fisier CSV
+
+- aplicatia trebuie sa poata crea parole aleatoare pentru fiecare student
+
+- aplicatia trebuie sa poata exporta fisier CSV cu nume, email si parola in clar.
+
+- acest fisier va fi folosit de prodecan pentru a trimite pe email prin client Thunderbird parolele catre toti studentii individual
+
+- prodecanul trebuie sa vada lista de studenti cu conventii
+
+- prodecanul trebuie sa poata vizualiza cate o conventie, editat in prealabil de student
+
+- prodecanul trebuie sa poata semna acea conventie prin inserarea unei semnaturi JPG in documentul Word, la final, generat de aplicatie
+
+Interfata student
+
+- login pe baza de email si parola generata
+
+- se porneste de la fisierul de conventie din portalul AC (https://ac.upt.ro/practica-licenta/) pe care studentul trebuie sa il completeze si pe care prodecanul trebuie sa il semneze
+
+- se ia fisierul de conventie DOC si se extrag campurile pe care in mod normal il completeaza studentul iar pe baza lor se face un formular web
+
+- studentul va putea accesa formularul sau si il va completa
+
+- studetul isi va putea genera si descarca un fisier DOCX cu sau fara semnatura in functie de starea sa
+
+
