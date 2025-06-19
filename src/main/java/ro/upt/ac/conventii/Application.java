@@ -10,8 +10,7 @@ import ro.upt.ac.conventii.prodecan.Prodecan;
 import ro.upt.ac.conventii.prodecan.ProdecanRepository;
 import ro.upt.ac.conventii.prorector.Prorector;
 import ro.upt.ac.conventii.prorector.ProrectorRepository;
-import ro.upt.ac.conventii.rector.Rector;
-import ro.upt.ac.conventii.rector.RectorRepository;
+
 import ro.upt.ac.conventii.security.User;
 import ro.upt.ac.conventii.security.UserRepository;
 
@@ -24,7 +23,7 @@ public class Application {
     }
 
     @Bean
-    public CommandLineRunner loadTestData(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, ProdecanRepository prodecanRepository, ProrectorRepository prorectorRepository,RectorRepository rectorRepository) {
+    public CommandLineRunner loadTestData(UserRepository userRepository, BCryptPasswordEncoder passwordEncoder, ProdecanRepository prodecanRepository, ProrectorRepository prorectorRepository) {
         return args -> {
 System.out.println("Încercare creare utilizator prodecan de test...");
             
@@ -113,36 +112,7 @@ System.out.println("Încercare creare utilizator prodecan de test...");
                 System.out.println("Prorectorul există deja în baza de date!");
             }
             
-            System.out.println("Încercare creare utilizator rector de test...");
-            
-            if (userRepository.findByEmail("rector@test.com") == null) {
-                User userRector = new User();
-                userRector.setEmail("rector@test.com");
-                userRector.setNume("Drăgan");
-                userRector.setPrenume("Florin");
-                userRector.setPassword(passwordEncoder.encode("password"));
-                userRector.setRole("ROLE_RECTOR");
-                userRector.setEnabled(true);
-                userRector.setFacultate("Universitatea Politehnica Timișoara");
-                userRector.setTitluAcademic("Prof. dr. ing.");
-                
-                userRepository.save(userRector);
-                
-                Rector rector = new Rector();
-                rector.setEmail("rector@test.com");
-                rector.setNume("Drăgan");
-                rector.setPrenume("Florin");
-                rector.setTitluAcademic("Prof. dr. ing.");
-                rector.setTelefon("0712345678");
-                
-                rectorRepository.save(rector);
-                
-                System.out.println("Rector creat cu succes!");
-                System.out.println("Email: rector@test.com");
-                System.out.println("Parola: password");
-            } else {
-                System.out.println("Rectorul există deja în baza de date!");
-            }
+          
         
         };
     }

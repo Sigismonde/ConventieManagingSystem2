@@ -23,8 +23,10 @@ public class HomeController {
                     return "redirect:/student/dashboard";
                 case "ROLE_PRORECTOR":
                     return "redirect:/prorector/dashboard";
-                case "ROLE_REPREZENTANT":
-                    return "redirect:/reprezentant/dashboard";
+                case "ROLE_PARTNER":
+                    return "redirect:/partner/dashboard";
+                case "ROLE_TUTORE":  
+                    return "redirect:/tutore/dashboard";
                 default:
                     return "redirect:/login";
             }

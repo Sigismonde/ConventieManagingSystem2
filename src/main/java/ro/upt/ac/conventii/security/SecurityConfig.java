@@ -25,7 +25,7 @@ public class SecurityConfig {
                 .requestMatchers("/prodecan/**").hasRole("PRODECAN")
                 .requestMatchers("/prorector/**").hasRole("PRORECTOR")
                 .requestMatchers("/student/**").hasRole("STUDENT")
-                .requestMatchers("/reprezentant/**").hasRole("REPREZENTANT")
+                .requestMatchers("/partner/**").hasRole("PARTNER")
                 .requestMatchers("/tutore/**").hasRole("TUTORE")
                 .anyRequest().authenticated()
             )

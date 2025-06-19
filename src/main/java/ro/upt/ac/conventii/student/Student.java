@@ -39,7 +39,7 @@ public class Student
 	private String telefon;
 	
 
-    
+    // trebuie schimbat
     // Constructor
     public Student() {
         this.anDeStudiu = 1; // Setăm și în constructor pentru siguranță

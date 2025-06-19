@@ -31,11 +31,11 @@ public class CustomAuthenticationSuccessHandler implements AuthenticationSuccess
                 case "ROLE_PRORECTOR":
                     response.sendRedirect("/prorector/dashboard");
                     break;
-                case "ROLE_REPREZENTANT":
-                    response.sendRedirect("/reprezentant/dashboard");
+                case "ROLE_PARTNER":
+                    response.sendRedirect("/partner/dashboard");
                     break;
                 case "ROLE_TUTORE":
-                    response.sendRedirect("/tutore/dashboard");
+                    response.sendRedirect("/tutore/dashboard"); // Adăugare redirecționare pentru tutore
                     break;
                 default:
                     response.sendRedirect("/");
