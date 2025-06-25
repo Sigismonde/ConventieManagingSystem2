@@ -239,6 +239,8 @@ public class ProdecanController {
     @PostMapping("/student-create")
     public String creazaStudent(@ModelAttribute Student student, RedirectAttributes redirectAttributes) {
         try {
+        	
+        	
             // Salvăm studentul în baza de date
             studentRepository.save(student);
             
@@ -1506,7 +1508,40 @@ public class ProdecanController {
         return "redirect:/prodecan/cadre-didactice";
     }
     
-  
+    @GetMapping("/tutori")
+    public String listaTutori(Model model, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        model.addAttribute("user", user);
+        
+        try {
+            List<Tutore> tutori = tutoreRepository.findAll();
+            model.addAttribute("tutori", tutori);
+        } catch (Exception e) {
+            System.err.println("Eroare la încărcarea tutorilor: " + e.getMessage());
+            model.addAttribute("tutori", new ArrayList<>());
+        }
+        
+        return "prodecan/tutori";
+    }
+    
+    @GetMapping("/partners")
+    public String listaParteneri(Model model, Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        model.addAttribute("user", user);
+        
+        try {
+            List<Partner> partners = partnerRepository.findAll();
+            System.out.println("DEBUG: Total parteneri găsiți: " + partners.size());
+            
+            model.addAttribute("partners", partners);
+            
+        } catch (Exception e) {
+            System.err.println("Eroare la încărcarea partenerilor: " + e.getMessage());
+            model.addAttribute("partners", new ArrayList<>());
+        }
+        
+        return "prodecan/partners";
+    }
     
     @GetMapping("/conventii")
     public String listaConventii(Model model, Authentication authentication) {

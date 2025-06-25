@@ -25,9 +25,8 @@
             </div>
             <div class="card-body">
             
-             <form th:action="@{${student.id != null ? '/prodecan/student-edit/' + student.id : '/prodecan/student-create'}}"
-                      th:object="${student}" 
-                      method="post">
+             <form th:action="${student.id == 0 ? '/prodecan/student-create' : '/prodecan/student-edit/' + student.id}"
+      th:object="${student}" method="post">
                     
                     <!-- Adăugăm un câmp ascuns pentru ID -->
                     <input type="hidden" th:field="*{id}" />
@@ -46,12 +45,8 @@
     <div class="row mb-3">
     <div class="col-md-6">
         <label for="email" class="form-label">Email:</label>
-        <input type="email" 
-               class="form-control" 
-               id="email" 
-               th:field="*{email}" 
-               th:readonly="${student.id != null && student.id > 0}"
-               required>
+        <input type="email" th:field="*{email}" 
+       th:readonly="${student.id > 0}" required>
     </div>
     <div class="col-md-6">
         <label for="telefon" class="form-label">Telefon:</label>
@@ -100,16 +95,17 @@
                         </div>
                     </div>
 
-                    <div class="mb-3">
-                        <label for="adresa" class="form-label">Adresa</label>
-                        <input type="text" class="form-control" id="adresa" th:field="*{adresa}" required>
-                    </div>
-
                     <div class="row mb-3">
-                        <div class="col-md-6">
-                            <label for="anUniversitar" class="form-label">An Universitar (ex: 2023-2024)</label>
-                            <input type="text" class="form-control" id="anUniversitar" th:field="*{anUniversitar}" required>
-                        </div>
+    <div class="col-md-6">
+        <label for="adresa" class="form-label">Adresa</label>
+        <textarea class="form-control" id="adresa" th:field="*{adresa}" rows="2"></textarea>
+    </div>
+    <div class="col-md-6">
+        <label for="anUniversitar" class="form-label">An Universitar</label>
+        <input type="text" class="form-control" id="anUniversitar" th:field="*{anUniversitar}" 
+               placeholder="ex: 2024-2025">
+    </div>
+</div>
                         <div class="col-md-6">
                             <label for="anDeStudiu" class="form-label">An de Studiu</label>
                             <select class="form-control" id="anDeStudiu" th:field="*{anDeStudiu}" required>

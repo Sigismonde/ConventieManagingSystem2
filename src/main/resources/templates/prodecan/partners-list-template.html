@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Management Parteneri - Prodecan</title>
+    <title>Lista Parteneri - Prodecan</title>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -64,88 +64,97 @@
         </div>
     </nav>
 
+    <!-- Main Content -->
     <div class="container mt-4">
-        <!-- Mesaje de succes/eroare -->
+        <!-- Page Header -->
+        <div class="row mb-4">
+            <div class="col">
+                <h2>
+                    <i class="fas fa-handshake me-2"></i>Management Parteneri
+                </h2>
+                <p class="text-muted">Gestionează partenerii companiilor</p>
+            </div>
+        </div>
+
+        <!-- Alert Messages -->
         <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle me-2"></i>
-            <span th:text="${successMessage}" style="white-space: pre-line;"></span>
+            <span th:text="${successMessage}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
+
         <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
             <i class="fas fa-exclamation-circle me-2"></i>
             <span th:text="${errorMessage}"></span>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
-        <!-- Header -->
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h3><i class="fas fa-handshake me-2"></i>Management Parteneri</h3>
-            <a href="/prodecan/partners/create" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Adaugă Partener Nou
-            </a>
-        </div>
-
-        <!-- Card principal -->
+        <!-- Partners Table -->
         <div class="card">
-            <div class="card-header">
-                <h5 class="mb-0">Lista Partenerilor</h5>
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">
+                    <i class="fas fa-list me-2"></i>Lista Parteneri
+                </h5>
+                <div>
+                    <span class="badge bg-info me-2">
+                        Total: <span th:text="${#lists.size(partners)}">0</span>
+                    </span>
+                </div>
             </div>
             <div class="card-body">
-                <!-- Filtru de căutare -->
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <div class="input-group">
-                            <input type="text" id="searchInput" class="form-control" placeholder="Caută după nume, companie sau email...">
-                            <button class="btn btn-outline-secondary" type="button">
-                                <i class="fas fa-search"></i>
-                            </button>
-                        </div>
-                    </div>
+                <div th:if="${#lists.isEmpty(partners)}" class="text-center py-4">
+                    <i class="fas fa-handshake fa-3x text-muted mb-3"></i>
+                    <h5 class="text-muted">Nu există parteneri înregistrați</h5>
+                    <p class="text-muted">Partenerii se creează automat când se adaugă o companie nouă.</p>
                 </div>
 
-                <!-- Tabel parteneri -->
-                <div class="table-responsive">
+                <div th:if="${not #lists.isEmpty(partners)}" class="table-responsive">
                     <table class="table table-hover">
-                        <thead>
+                        <thead class="table-dark">
                             <tr>
-                                <th>Nume și Prenume</th>
-                                <th>Companie</th>
-                                <th>Funcție</th>
+                                <th>ID</th>
+                                <th>Nume Complet</th>
                                 <th>Email</th>
                                 <th>Telefon</th>
+                                <th>Funcție</th>
+                                <th>Companie</th>
                                 <th>Acțiuni</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr th:if="${partners.empty}">
-                                <td colspan="6" class="text-center">Nu există parteneri înregistrați.</td>
-                            </tr>
                             <tr th:each="partner : ${partners}">
-                                <td th:text="${partner.numeComplet}">Nume Partener</td>
-                                <td th:text="${partner.companie != null ? partner.companie.nume : 'N/A'}">Nume Companie</td>
-                                <td th:text="${partner.functie}">Funcție</td>
-                                <td th:text="${partner.email}">email@example.com</td>
-                                <td th:text="${partner.telefon}">0712345678</td>
                                 <td>
-                                    <div class="btn-group">
-                                        <!-- Edit -->
-                                        <a th:href="@{'/prodecan/partners/edit/' + ${partner.id}}" class="btn btn-warning btn-sm me-1" title="Editează">
-                                            <i class="fas fa-edit"></i>
+                                    <span class="badge bg-secondary" th:text="${partner.id}">1</span>
+                                </td>
+                                <td>
+                                    <strong>
+                                        <span th:text="${partner.prenume}">Prenume</span>
+                                        <span th:text="${partner.nume}">Nume</span>
+                                    </strong>
+                                </td>
+                                <td>
+                                    <i class="fas fa-envelope me-1"></i>
+                                    <span th:text="${partner.email}">email@company.com</span>
+                                </td>
+                                <td>
+                                    <i class="fas fa-phone me-1"></i>
+                                    <span th:text="${partner.telefon}">0123456789</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-primary" th:text="${partner.functie}">Manager</span>
+                                </td>
+                                <td>
+                                    <i class="fas fa-building me-1"></i>
+                                    <span th:text="${partner.companie?.nume}">Nume Companie</span>
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <a th:href="@{/prodecan/companii}" 
+                                           class="btn btn-sm btn-outline-info"
+                                           title="Vezi compania">
+                                            <i class="fas fa-building"></i>
                                         </a>
-                                        <!-- Reset password -->
-                                        <form th:action="@{'/prodecan/partners/reset-password/' + ${partner.id}}" method="post" class="d-inline me-1">
-                                            <button type="submit" class="btn btn-info btn-sm" title="Resetează parola"
-                                                    onclick="return confirm('Sigur doriți să resetați parola partenerului?')">
-                                                <i class="fas fa-key"></i>
-                                            </button>
-                                        </form>
-                                        <!-- Delete -->
-                                        <form th:action="@{'/prodecan/partners/delete/' + ${partner.id}}" method="post" class="d-inline">
-                                            <button type="submit" class="btn btn-danger btn-sm" title="Șterge"
-                                                    onclick="return confirm('Sigur doriți să ștergeți acest partener?')">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </form>
+                                        <span class="badge bg-success ms-1">Activ</span>
                                     </div>
                                 </td>
                             </tr>
@@ -157,32 +166,5 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    
-    <script>
-        // Funcție pentru filtrare
-        document.addEventListener('DOMContentLoaded', function() {
-            const searchInput = document.getElementById('searchInput');
-            
-            searchInput.addEventListener('keyup', function() {
-                const searchValue = this.value.toLowerCase();
-                const rows = document.querySelectorAll('tbody tr');
-                
-                rows.forEach(row => {
-                    // Ignoră rândul "Nu există parteneri înregistrați"
-                    if (row.cells.length === 1) return;
-                    
-                    const name = row.cells[0].textContent.toLowerCase();
-                    const company = row.cells[1].textContent.toLowerCase();
-                    const email = row.cells[3].textContent.toLowerCase();
-                    
-                    const isVisible = name.includes(searchValue) || 
-                                     company.includes(searchValue) || 
-                                     email.includes(searchValue);
-                    
-                    row.style.display = isVisible ? '' : 'none';
-                });
-            });
-        });
-    </script>
 </body>
 </html>

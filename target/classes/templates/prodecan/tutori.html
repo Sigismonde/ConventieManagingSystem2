@@ -1,20 +1,20 @@
 <!DOCTYPE html>
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
-    <title>Management Companii - Prodecan</title>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>Gestionare Tutori - Prodecan</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
-    <!-- Navbar -->
+    <!-- Navigation -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-dark">
         <div class="container">
             <a class="navbar-brand" href="/prodecan/dashboard">
-                <i class="fas fa-university me-2"></i>Portal Convenții - Prodecan
+                <i class="fas fa-graduation-cap me-2"></i>Portal Convenții - Prodecan
             </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
@@ -82,19 +82,17 @@
                         </ul>
                     </li>
                 </ul>
-
-                <!-- Informații utilizator și logout -->
-                <ul class="navbar-nav">
+                <ul class="navbar-nav ms-auto">
                     <li class="nav-item">
                         <span class="nav-link">
                             <i class="fas fa-user me-1"></i>
-                            <span th:text="${user.numeComplet}">Nume Prodecan</span>
+                            <span th:text="${user.getNumeComplet()}">&nbsp;</span>
                         </span>
                     </li>
                     <li class="nav-item">
-                        <form th:action="@{/logout}" method="post">
+                        <form th:action="@{/logout}" method="post" class="d-inline">
                             <button class="btn btn-link nav-link" type="submit">
-                                <i class="fas fa-sign-out-alt me-1"></i>Logout
+                                <i class="fas fa-sign-out-alt me-1"></i>Deconectare
                             </button>
                         </form>
                     </li>
@@ -104,10 +102,18 @@
     </nav>
 
     <div class="container mt-4">
-        <!-- Mesaje de success/error -->
+        <!-- Breadcrumb -->
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/prodecan/dashboard">Dashboard</a></li>
+                <li class="breadcrumb-item active" aria-current="page">Tutori</li>
+            </ol>
+        </nav>
+
+        <!-- Alerts -->
         <div th:if="${successMessage}" class="alert alert-success alert-dismissible fade show" role="alert">
             <i class="fas fa-check-circle me-2"></i>
-            <span th:text="${successMessage}" style="white-space: pre-line;"></span>
+            <pre style="white-space: pre-wrap; margin: 0; background: none; border: none;" th:text="${successMessage}"></pre>
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
         <div th:if="${errorMessage}" class="alert alert-danger alert-dismissible fade show" role="alert">
@@ -116,67 +122,70 @@
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         </div>
 
+        <!-- Page Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2><i class="fas fa-chalkboard-teacher me-2"></i>Gestionare Tutori</h2>
+            <a href="/prodecan/management/tutori/create" class="btn btn-success">
+                <i class="fas fa-plus me-2"></i>Adaugă Tutore
+            </a>
+        </div>
+
+        <!-- Tutori Card -->
         <div class="card">
-            <div class="card-header d-flex justify-content-between align-items-center">
-                <h5 class="mb-0">
-                    <i class="fas fa-building me-2"></i>Management Companii
-                </h5>
-                <a href="/prodecan/companie-create" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus me-1"></i>Adaugă Companie
-                </a>
+            <div class="card-header">
+                <h5>Lista Tutorilor</h5>
             </div>
             <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>Nume Companie</th>
-                                <th>CUI</th>
-                                <th>Nr. Reg. Com.</th>
-                                <th>Email</th>
-                                <th>Reprezentant</th>
-                                <th>Funcție</th>
-                                <th>Adresa</th>
-                                <th>Telefon</th>
-                                <th>Acțiuni</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr th:if="${companii == null || companii.empty}">
-                                <td colspan="9" class="text-center">Nu există companii înregistrate.</td>
-                            </tr>
-                            <tr th:each="companie : ${companii ?: new ArrayList()}">
-                                <td th:text="${companie.nume}">Nume Companie</td>
-                                <td th:text="${companie.cui}">CUI</td>
-                                <td th:text="${companie.nrRegCom}">Nr. Reg. Com.</td>
-                                <td th:text="${companie.email}">Email</td>
-                                <td>
-                                    <!-- Afișăm numele complet al reprezentantului -->
-                                    <span th:text="${companie.prenumeReprezentant + ' ' + companie.numeReprezentant}">
-                                        Prenume Nume
-                                    </span>
-                                </td>
-                                <td th:text="${companie.functie}">Funcție</td>
-                                <td th:text="${companie.adresa}">Adresa</td>
-                                <td th:text="${companie.telefon}">Telefon</td>
-                                <td>
-                                    <div class="btn-group">
-                                        <a th:href="@{/prodecan/companie-edit/{id}(id=${companie.id})}" 
-                                           class="btn btn-primary btn-sm me-1" title="Editează">
-                                            <i class="fas fa-edit"></i>
-                                        </a>
-                                        <a th:href="@{/prodecan/companie-delete/{id}(id=${companie.id})}" 
-                                           class="btn btn-danger btn-sm"
-                                           onclick="return confirm('Ești sigur că vrei să ștergi această companie? Aceasta va șterge și partenerul asociat!')"
-                                           title="Șterge">
-                                            <i class="fas fa-trash"></i>
-                                        </a>
-                                    </div>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <table class="table table-hover table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Nume</th>
+                            <th>Prenume</th>
+                            <th>Email</th>
+                            <th>Funcție</th>
+                            <th>Telefon</th>
+                            <th>Companie</th>
+                            <th>Acțiuni</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr th:if="${tutori == null or tutori.isEmpty()}">
+                            <td colspan="8" class="text-center text-muted">
+                                <i class="fas fa-inbox me-2"></i>Nu există tutori înregistrați.
+                            </td>
+                        </tr>
+                        <tr th:each="tutore, iterStat : ${tutori}">
+                            <td th:text="${iterStat.index + 1}">1</td>
+                            <td th:text="${tutore.nume}">Nume</td>
+                            <td th:text="${tutore.prenume}">Prenume</td>
+                            <td th:text="${tutore.email}">email@example.com</td>
+                            <td th:text="${tutore.functie}">Funcție</td>
+                            <td th:text="${tutore.telefon}">Telefon</td>
+                            <td th:text="${tutore.companie.nume}">Companie</td>
+                            <td>
+                                <div class="btn-group" role="group" aria-label="Acțiuni">
+                                    <a th:href="@{'/prodecan/management/tutori/edit/' + ${tutore.id}}" 
+                                       class="btn btn-sm btn-primary" title="Editează">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <form th:action="@{'/prodecan/management/tutori/reset-password/' + ${tutore.id}}" 
+                                          method="post" class="d-inline">
+                                        <button type="submit" class="btn btn-sm btn-warning" title="Resetează Parola"
+                                                onclick="return confirm('Sunteți sigur că doriți să resetați parola acestui tutore?')">
+                                            <i class="fas fa-key"></i>
+                                        </button>
+                                    </form>
+                                    <a th:href="@{'/prodecan/management/tutori/delete/' + ${tutore.id}}" 
+                                       class="btn btn-sm btn-danger" title="Șterge"
+                                       onclick="return confirm('Sunteți sigur că doriți să ștergeți acest tutore?')">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

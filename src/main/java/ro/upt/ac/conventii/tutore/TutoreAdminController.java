@@ -19,6 +19,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import ro.upt.ac.conventii.companie.Companie;
 import ro.upt.ac.conventii.companie.CompanieRepository;
+import ro.upt.ac.conventii.conventie.Conventie;
 import ro.upt.ac.conventii.conventie.ConventieRepository;
 import ro.upt.ac.conventii.security.User;
 import ro.upt.ac.conventii.security.UserRepository;
@@ -81,6 +82,8 @@ public class TutoreAdminController {
         return "prodecan/management/tutore-form";
     }
     
+ // În TutoreAdminController.java - actualizează metoda createTutore
+
     @PostMapping("/create")
     public String createTutore(@ModelAttribute("tutore") Tutore tutore, 
                                @RequestParam("companie.id") Integer companieId,
@@ -88,7 +91,6 @@ public class TutoreAdminController {
         try {
             // Verificăm dacă compania selectată există
             if (companieId != null && companieId > 0) {
-                // IMPORTANT: Folosim metoda redenumită care returnează Companie direct
                 Companie companie = companieRepository.findCompanieById(companieId);
                 if (companie != null) {
                     tutore.setCompanie(companie);
@@ -112,8 +114,10 @@ public class TutoreAdminController {
                 throw new RuntimeException("Eroare la salvarea tutorelui în baza de date!");
             }
             
+            // Creăm parola temporară în același stil ca la parteneri: prenume + nume
+            String temporaryPassword = tutore.getPrenume() + tutore.getNume();
+            
             // Creăm contul de utilizator
-            String temporaryPassword = passwordGeneratorService.generateRandomPassword();
             User userTutore = new User();
             userTutore.setEmail(tutore.getEmail());
             userTutore.setNume(tutore.getNume());
@@ -127,13 +131,16 @@ public class TutoreAdminController {
             
             redirectAttributes.addFlashAttribute("successMessage", 
                 "Tutore creat cu succes!\n" +
+                "A fost creat automat și un cont de utilizator pentru tutore.\n" +
                 "----------------------------------------\n" +
+                "Tutore: " + tutore.getPrenume() + " " + tutore.getNume() + "\n" +
                 "Email: " + tutore.getEmail() + "\n" +
-                "PAROLA TEMPORARĂ: " + temporaryPassword + "\n" +
+                "PAROLA: " + temporaryPassword + "\n" +
                 "----------------------------------------\n" +
                 "IMPORTANT: Salvați această parolă!");
                 
             return "redirect:/prodecan/management/tutori";
+            
         } catch (Exception e) {
             e.printStackTrace();
             redirectAttributes.addFlashAttribute("errorMessage", 
@@ -223,24 +230,65 @@ public class TutoreAdminController {
         }
     }
     
-    @GetMapping("/delete/{id}")
-    public String deleteTutore(@PathVariable int id, RedirectAttributes redirectAttributes) {
+ // Adaugă aceste metode în TutoreAdminController.java
+
+    @PostMapping("/reset-password/{id}")
+    public String resetTutorePassword(@PathVariable int id, RedirectAttributes redirectAttributes) {
         try {
-            // IMPORTANT: Folosim metoda redenumită care returnează Tutore direct
+            // Găsim tutorele
             Tutore tutore = tutoreRepository.findTutoreById(id);
             if (tutore == null) {
                 throw new RuntimeException("Tutorele cu ID-ul " + id + " nu a fost găsit!");
             }
             
-            // IMPORTANT: Verificăm convențiile asociate folosind ID-ul tutorelui
-            // Această metodă trebuie să existe în ConventieRepository
-            long count = conventieRepository.countByTutoreId(tutore.getId());
-            if (count > 0) {
-                throw new RuntimeException("Nu se poate șterge tutorele deoarece există " + 
-                    count + " convenții asociate!");
+            // Găsim utilizatorul asociat
+            User userTutore = userRepository.findByEmail(tutore.getEmail());
+            if (userTutore == null) {
+                throw new RuntimeException("Nu există un cont de utilizator pentru acest tutore!");
             }
             
-            // Ștergem contul de utilizator asociat dacă există
+            // Generăm noua parolă temporară în același stil ca la parteneri
+            String newTemporaryPassword = tutore.getPrenume() + tutore.getNume();
+            
+            // Actualizăm parola
+            userTutore.setPassword(passwordEncoder.encode(newTemporaryPassword));
+            userTutore.setFirstLogin(true);
+            userRepository.save(userTutore);
+            
+            redirectAttributes.addFlashAttribute("successMessage", 
+                "Parola a fost resetată cu succes!\n" +
+                "----------------------------------------\n" +
+                "Tutore: " + tutore.getPrenume() + " " + tutore.getNume() + "\n" +
+                "Email: " + tutore.getEmail() + "\n" +
+                "NOUA PAROLĂ: " + newTemporaryPassword + "\n" +
+                "----------------------------------------\n" +
+                "IMPORTANT: Salvați această parolă!");
+                
+        } catch (Exception e) {
+            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("errorMessage", 
+                "Eroare la resetarea parolei: " + e.getMessage());
+        }
+        
+        return "redirect:/prodecan/management/tutori";
+    }
+
+    @PostMapping("/delete/{id}")
+    public String deleteTutore(@PathVariable int id, RedirectAttributes redirectAttributes) {
+        try {
+            // Găsim tutorele
+            Tutore tutore = tutoreRepository.findTutoreById(id);
+            if (tutore == null) {
+                throw new RuntimeException("Tutorele cu ID-ul " + id + " nu a fost găsit!");
+            }
+            
+            // Verificăm dacă există convenții asociate cu acest tutore
+            List<Conventie> conventiiAsociate = conventieRepository.findByTutoreId(id);
+            if (!conventiiAsociate.isEmpty()) {
+                throw new RuntimeException("Nu se poate șterge tutorele deoarece există convenții asociate!");
+            }
+            
+            // Ștergem contul de utilizator asociat
             User userTutore = userRepository.findByEmail(tutore.getEmail());
             if (userTutore != null) {
                 userRepository.delete(userTutore);
@@ -250,49 +298,12 @@ public class TutoreAdminController {
             tutoreRepository.delete(tutore);
             
             redirectAttributes.addFlashAttribute("successMessage", 
-                "Tutore șters cu succes!");
-            
+                "Tutorele " + tutore.getPrenume() + " " + tutore.getNume() + " a fost șters cu succes!");
+                
         } catch (Exception e) {
             e.printStackTrace();
             redirectAttributes.addFlashAttribute("errorMessage", 
                 "Eroare la ștergerea tutorelui: " + e.getMessage());
-        }
-        
-        return "redirect:/prodecan/management/tutori";
-    }
-    
-    @PostMapping("/reset-password/{id}")
-    public String resetPassword(@PathVariable int id, RedirectAttributes redirectAttributes) {
-        try {
-            // IMPORTANT: Folosim metoda redenumită care returnează Tutore direct
-            Tutore tutore = tutoreRepository.findTutoreById(id);
-            if (tutore == null) {
-                throw new RuntimeException("Tutorele cu ID-ul " + id + " nu a fost găsit!");
-            }
-            
-            User userTutore = userRepository.findByEmail(tutore.getEmail());
-            if (userTutore == null) {
-                throw new RuntimeException("Contul de utilizator pentru tutore nu a fost găsit!");
-            }
-            
-            // Generăm o parolă nouă
-            String newPassword = passwordGeneratorService.generateRandomPassword();
-            userTutore.setPassword(passwordEncoder.encode(newPassword));
-            userRepository.save(userTutore);
-            
-            redirectAttributes.addFlashAttribute("successMessage", 
-                "Parolă resetată cu succes!\n" +
-                "----------------------------------------\n" +
-                "Tutore: " + tutore.getNume() + " " + tutore.getPrenume() + "\n" +
-                "Email: " + tutore.getEmail() + "\n" +
-                "NOUA PAROLĂ: " + newPassword + "\n" +
-                "----------------------------------------\n" +
-                "IMPORTANT: Salvați această parolă!");
-            
-        } catch (Exception e) {
-            e.printStackTrace();
-            redirectAttributes.addFlashAttribute("errorMessage", 
-                "Eroare la resetarea parolei: " + e.getMessage());
         }
         
         return "redirect:/prodecan/management/tutori";

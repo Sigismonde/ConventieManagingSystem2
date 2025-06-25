@@ -14,7 +14,7 @@ public class Student
 {
 	 @Id
 	    @GeneratedValue(strategy = GenerationType.IDENTITY)
-	    private Integer id;  // Folosim Integer în loc de int pentru a putea fi null
+	    private int id;  // Folosim Integer în loc de int pentru a putea fi null
 	    
 	    @Column(unique = true)
 	    private String email;
@@ -56,7 +56,6 @@ public class Student
     @Lob
     @Column(name = "semnatura", columnDefinition="LONGBLOB")
     private byte[] semnatura;
-
     public byte[] getSemnatura() {
         return semnatura;
     }
