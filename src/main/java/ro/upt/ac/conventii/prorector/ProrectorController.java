@@ -1245,14 +1245,15 @@ public class ProrectorController {
      // Names row for second table
      PdfPCell numeLabel2 = new PdfPCell(new Paragraph("Nume și prenume", boldFont));
      numeLabel2.setHorizontalAlignment(Element.ALIGN_LEFT);
-     PdfPCell numeProdecan = new PdfPCell(new Paragraph(prodecanSemnatar != null ? prodecanSemnatar.getNume() + " " + prodecanSemnatar.getPrenume() : "N/A", font));
+     PdfPCell numeCadruDidactic = new PdfPCell(new Paragraph(
+    		    conventie.getCadruDidactic().getNume() + " " + conventie.getCadruDidactic().getPrenume(), font));
      PdfPCell numeTutore = new PdfPCell(new Paragraph(conventie.getTutore().getNume() + " " + conventie.getTutore().getPrenume(), font));
 
-     numeProdecan.setHorizontalAlignment(Element.ALIGN_CENTER);
+     numeCadruDidactic.setHorizontalAlignment(Element.ALIGN_CENTER);
      numeTutore.setHorizontalAlignment(Element.ALIGN_CENTER);
 
      secondTable.addCell(numeLabel2);
-     secondTable.addCell(numeProdecan);
+     secondTable.addCell(numeCadruDidactic);
      secondTable.addCell(numeTutore);
 
      // Function row for second table

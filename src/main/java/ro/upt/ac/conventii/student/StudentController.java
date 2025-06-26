@@ -320,6 +320,8 @@ public class StudentController {
                 conventie.setStatus(existingConventie.getStatus());
             }
 
+         // Păstrăm data întocmirii originale
+            conventie.setDataIntocmirii(existingConventie.getDataIntocmirii());
             // Verificăm dacă a fost selectat un tutore existent sau s-a creat unul nou
             if (tutoreId != null && !tutoreId.isEmpty() && !tutoreId.equals("new") && !tutoreId.equals("")) {
                 try {
