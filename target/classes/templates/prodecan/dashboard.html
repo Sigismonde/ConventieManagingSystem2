@@ -184,7 +184,7 @@
 
         <!-- Convenții în Așteptarea Prodecanului -->
         <div class="card mb-4">
-            <div class="card-header">
+            <div class="card-header bg-warning">
                 <h5 class="card-title mb-0">
                     <i class="fas fa-clock me-2"></i>Convenții în așteptare de aprobare
                 </h5>
@@ -204,22 +204,48 @@
                             <tr th:if="${conventiiNesemnate.empty}">
                                 <td colspan="4" class="text-center">Nu există convenții în așteptarea ta.</td>
                             </tr>
-                            <tr th:each="conventie : ${conventiiNesemnate}">
+                            <tr th:each="conventie : ${conventiiNesemnate}" class="table-warning">
                                 <td th:text="${conventie.student != null ? conventie.student.numeComplet : 'N/A'}">Nume Student</td>
                                 <td th:text="${conventie.companie != null ? conventie.companie.nume : 'N/A'}">Nume Companie</td>
                                 <td th:text="${conventie.dataIntocmirii != null ? #dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy') : 'N/A'}">Data</td>
                                 <td>
                                     <div class="btn-group">
-                                        <form th:action="@{/prodecan/conventie/aproba/{id}(id=${conventie.id})}" 
-                                              method="post" class="me-1">
-                                            <button class="btn btn-success btn-sm">
-                                                <i class="fas fa-signature"></i> Semnează
+                                        <!-- Vizualizare -->
+                                        <a th:href="@{'/prodecan/conventie-export/' + ${conventie.id}}" 
+                                           class="btn btn-primary btn-sm me-1" 
+                                           title="Vizualizează"
+                                           target="_blank">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        
+                                        <!-- Word -->
+                                        <a th:href="@{'/prodecan/conventie-export-word/' + ${conventie.id}}" 
+                                           class="btn btn-success btn-sm me-1"
+                                           title="Descarcă Word">
+                                            <i class="fas fa-file-word"></i>
+                                        </a>
+
+                                        <!-- PDF -->
+                                        <a th:href="@{'/prodecan/conventie-export-pdf/' + ${conventie.id}}" 
+                                           class="btn btn-danger btn-sm me-1"
+                                           title="Descarcă PDF">
+                                            <i class="fas fa-file-pdf"></i>
+                                        </a>
+
+                                        <!-- Butonul de aprobare (semnează și trimite la prorector) -->
+                                        <form th:action="@{'/prodecan/conventie/aproba/' + ${conventie.id}}" 
+                                              method="post" class="d-inline me-1">
+                                            <button type="submit" class="btn btn-success btn-sm" title="Semnează și trimite la Prorector">
+                                                <i class="fas fa-signature"></i>
                                             </button>
                                         </form>
-                                        <form th:action="@{/prodecan/conventie/respinge/{id}(id=${conventie.id})}" 
-                                              method="post">
-                                            <button class="btn btn-danger btn-sm">
-                                                <i class="fas fa-times"></i> Respinge
+                                        
+                                        <!-- Butonul de respingere -->
+                                        <form th:action="@{'/prodecan/conventie/respinge/' + ${conventie.id}}" 
+                                              method="post" class="d-inline">
+                                            <button type="submit" class="btn btn-danger btn-sm" title="Respinge"
+                                                    onclick="return confirm('Sigur doriți să respingeți această convenție?')">
+                                                <i class="fas fa-times"></i>
                                             </button>
                                         </form>
                                     </div>
@@ -253,7 +279,7 @@
                             <tr th:if="${conventiiSemnate.empty}">
                                 <td colspan="4" class="text-center">Nu există convenții aprobate final recent.</td>
                             </tr>
-                            <tr th:each="conventie : ${conventiiSemnate}">
+                            <tr th:each="conventie : ${conventiiSemnate}" class="table-success">
                                 <td th:text="${conventie.student.numeComplet}">Student</td>
                                 <td th:text="${conventie.companie.nume}">Companie</td>
                                 <td th:text="${#dates.format(conventie.dataIntocmirii, 'dd.MM.yyyy')}">Data</td>
@@ -261,11 +287,11 @@
                                     <div class="btn-group">
                                         <!-- Vizualizare HTML -->
                                         <a th:href="@{'/prodecan/conventie-export/' + ${conventie.id}}" 
-   class="btn btn-primary btn-sm me-1"
-   title="Vizualizează HTML"
-   target="_blank">
-    <i class="fas fa-eye"></i>
-</a>
+                                           class="btn btn-primary btn-sm me-1"
+                                           title="Vizualizează HTML"
+                                           target="_blank">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
 
                                         <!-- Word -->
                                         <a th:href="@{'/prodecan/conventie-export-word/' + ${conventie.id}}" 
